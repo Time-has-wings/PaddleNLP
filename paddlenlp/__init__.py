@@ -59,6 +59,7 @@ from . import (
     trl,
     utils,
     version,
+    galvatron,
 )
 from .server import SimpleServer
 from .taskflow import Taskflow
