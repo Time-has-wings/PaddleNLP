@@ -28,6 +28,7 @@ from paddle.profiler.utils import switch_job_schedule_profiler
 from tqdm.auto import tqdm
 
 from paddlenlp.trainer import Trainer
+from paddlenlp.galvatron.profiler.runtime_profiler import RuntimeProfiler
 
 from ..transformers.model_utils import unwrap_model
 from ..utils.batch_sampler import DistributedBatchSampler as NlpDistributedBatchSampler
@@ -100,6 +101,15 @@ class AutoTrainer(Trainer):
         self.global_mesh = fleet.auto.get_mesh()
         self.comm_group_in_pp = fleet.get_hybrid_communicate_group().get_pipe_parallel_group()
         self._in_pir_mode = paddle.base.framework.get_flags("FLAGS_enable_pir_api")["FLAGS_enable_pir_api"]
+
+        # @added by linguangming
+        self.profile_args = None
+        if kwargs.get("profile_args", None) is not None:
+            print(f"[auto_parallel] AutoTrainer get profile_args")
+            self.profile_args = kwargs["profile_args"]
+            self.runtime_profiler = RuntimeProfiler(self.profile_args)
+            self.runtime_profiler.set_time_profiler(start_iter=10, end_iter=20)
+            self.runtime_profiler.set_memory_profiler(max_profile_memory_iter=5)
 
     @classmethod
     def parallel_model(cls, model, training_args: AutoTrainingArguments):
@@ -422,7 +432,7 @@ class AutoTrainer(Trainer):
         steps_trained_in_current_epoch = 0
         steps_trained_progress_bar = None
 
-        # Check if continuing training from a checkpoint
+        # Check if continuing training from a checkpoint  # [unused] 从激活检查点恢复
         if (
             resume_from_checkpoint is not None
             and distributed_isfile(os.path.join(resume_from_checkpoint, TRAINER_STATE_NAME))
@@ -541,6 +551,10 @@ class AutoTrainer(Trainer):
                     if schedule_start_step >= 0:
                         switch_job_schedule_profiler(model, step, schedule_start_step, schedule_end_step)
 
+                if self.profile_args is not None:
+                    self.runtime_profiler.profile_time_start(step)
+                    self.runtime_profiler.profile_memory(step, stage="Before Forward")
+                    
                 for inputs in inputs_list:
                     if step_control % args.gradient_accumulation_steps == 0:
                         self.control = self.callback_handler.on_step_begin(args, self.state, self.control)
@@ -566,6 +580,9 @@ class AutoTrainer(Trainer):
                     ):
 
                         self.timers and self.timers("forward-backward").stop()
+                        
+                        if self.profile_args is not None:
+                            self.runtime_profiler.profile_memory(step, stage="After Backward")
 
                         self.timers and self.timers("optimizer-step").start()
 
@@ -578,7 +595,11 @@ class AutoTrainer(Trainer):
                         )
 
                         self.optimizer_step()
-
+                        
+                        if self.profile_args is not None:
+                            self.runtime_profiler.post_profile_memory(step)
+                            self.runtime_profiler.profile_time_end(step)
+                            
                         self.timers and self.timers("optimizer-step").stop()
 
                         self.callback_handler.on_optimizer_end(
@@ -594,7 +615,7 @@ class AutoTrainer(Trainer):
                     else:
                         self.control = self.callback_handler.on_substep_end(args, self.state, self.control)
                         step_control += 1
-
+                
                 if self.control.should_epoch_stop or self.control.should_training_stop:
                     break
 
@@ -706,9 +727,15 @@ class AutoTrainer(Trainer):
     def dynamic_training(self, model: nn.Layer, inputs: Dict[str, Union[paddle.Tensor, Any]]) -> paddle.Tensor:
         with self.autocast_smart_context_manager():
             loss = self.compute_loss(model, inputs)
-
+    
         if loss is not None and self.args.gradient_accumulation_steps > 1 and not self._enable_delay_scale_loss():
             loss = loss / self.args.gradient_accumulation_steps
+
+        if self.profile_args is not None:
+            self.runtime_profiler.profile_memory(self.state.global_step, stage="After Forward")
+        
+        if self.profile_args.profile_forward_only:
+            return loss
 
         if self.do_grad_scaling:
             self.scaler.scale(loss).backward()
@@ -769,11 +796,14 @@ class AutoTrainer(Trainer):
 
             if optimizer_was_run:
                 self.lr_scheduler.step()
-
+            
+            self.runtime_profiler.profile_memory(self.state.global_step, stage="After Optimizer")
+            
             self.optimizer.clear_grad()
         else:
             # TODO: support optimizer_was_run in static mode
             self.lr_scheduler.step()
+            self.runtime_profiler.profile_memory(self.state.global_step, stage="After Optimizer")
 
     def _maybe_log_save_evaluate(self, tr_loss, model, epoch, ignore_keys_for_eval, **kwargs):
         with _exec_mode_guard("dynamic"):
