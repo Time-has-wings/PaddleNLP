@@ -1,7 +1,7 @@
 set -x
 unset CUDA_VISIBLE_DEVICES
 
-task_name="llama"
+task_name="llama_train"
 rm -rf output/$task_name/
 rm -rf "output/$task_name""_log"
 
@@ -20,7 +20,7 @@ TRAIN_ARGS="
     --max_grad_norm 1.0 \
     --learning_rate 3e-05 \
     --min_learning_rate 3e-06 \
-    --max_steps 30 \
+    --max_steps 25 \
     --logging_steps 1 \
     --continue_training 0 \
     --do_train true \
@@ -36,6 +36,7 @@ TRAIN_ARGS="
 
 # [seq_length] [num_hidden_layers]
 MODEL_ARGS="
+    --model_name_or_path "llama" \
     --num_hidden_layers 16 \
     --intermediate_size 11008 \
     --vocab_size 32000 \
@@ -61,7 +62,7 @@ CONFIG_ARGS="
 
 # [dp_deg, dp_type] [tp_deg, megatron-sp] [pp_deg, 1F1B] [parallel_configs]
 PARALLEL_ARGS=(
-    --to_static 1
+    --to_static 0
     --sharding_parallel_degree 1
     --sharding "stage2"
     --tensor_parallel_degree 4
@@ -71,13 +72,13 @@ PARALLEL_ARGS=(
     --pipeline_schedule_mode "1F1B"
     --sep_parallel_degree 1
     --pipeline_parallel_config "enable_send_recv_overlap"
-    --data_parallel_config "enable_allreduce_avg_in_gradinent_scale,gradient_sync_after_accumulate"
+    --data_parallel_config "enable_allreduce_avg_in_gradinent_scale gradient_sync_after_accumulate"
     --sharding_parallel_config "enable_overlap"
     --tensor_parallel_config "enable_mp_async_allreduce"
 )
 
 # [fused] [flash_attention]
-DEFAULT_OPTIMIZER="
+DEFAULT_OPTIMIZER_ARGS="
     --fuse_attention_ffn true \
     --fuse_attention_qkv true \
     --fused_linear_param_grad_add 1 \
@@ -93,11 +94,13 @@ DATA_ARGS="
     --split 949,50,1 \
     --max_seq_length 1024"
 
-# [profile]
-PROFILE_ARGS="
-    --profile_time_flag 0 \
+# [runtime_profile]
+RUNTIME_PROFILE_ARGS="
+    --profile_time_flag 1 \
     --profile_memory_flag 1 \
     --profile_forward_only 0 \
+    --save_time_flag 0 \
+    --save_memory_flag 0 \
 "
 
 $LAUNCHER \
@@ -105,6 +108,6 @@ $LAUNCHER \
     $TRAIN_ARGS \
     $CONFIG_ARGS \
     "${PARALLEL_ARGS[@]}" \
-    $DEFAULT_OPTIMIZER \
+    $DEFAULT_OPTIMIZER_ARGS \
     $DATA_ARGS \
-    $PROFILE_ARGS
+    $RUNTIME_PROFILE_ARGS \

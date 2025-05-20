@@ -34,7 +34,7 @@ from paddlenlp.utils.tools import get_env_device
 from paddle.io import Dataset, DistributedBatchSampler
 import numpy as np
 
-from paddlenlp.galvatron.profiler.base_profiler import ProfileArguments
+from paddlenlp.galvatron.profiler.runtime_profiler import RuntimeProfilerArguments
 
 class DummyDataset(Dataset):
     def __init__(self, vocab_size, seq_length):
@@ -317,12 +317,30 @@ def init_seed(seed: int = 1234, args=None):
             np.random.seed(args.seed)
             paddle.seed(args.seed)
 
+def runtime_profiler_initalize_manully(runtime_profiler_args:RuntimeProfilerArguments, training_args, model_args):
+    runtime_profiler_args.global_rank = dist.get_rank()
+    runtime_profiler_args.pp_degree = training_args.pipeline_parallel_degree
+    runtime_profiler_args.tp_degree = training_args.tensor_parallel_degree
+    runtime_profiler_args.dp_degree = training_args.dataset_world_size
+    runtime_profiler_args.runtime_profiler_to_static = training_args.to_static
+    runtime_profiler_args.runtime_profiler_recompute = training_args.recompute
+    
+    runtime_profiler_args.dp_rank = training_args.dataset_rank
+    runtime_profiler_args.tp_rank = training_args.tensor_parallel_rank
+    runtime_profiler_args.pp_rank = training_args.pipeline_parallel_rank
+
+    runtime_profiler_args.model_name = "llama"
+    runtime_profiler_args.layernum = model_args.num_hidden_layers
+    runtime_profiler_args.seq_len = model_args.seq_length
+    runtime_profiler_args.global_batch_size = training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps * training_args.dataset_world_size
+    runtime_profiler_args.mixed_precision = 'bf16' if training_args.bf16 else 'fp16' if training_args.fp16 else 'fp32'
+
 def main():
-    parser = PdArgumentParser((ModelArguments, DataArguments, PreTrainingArguments, ProfileArguments))
+    parser = PdArgumentParser((ModelArguments, DataArguments, PreTrainingArguments, RuntimeProfilerArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        model_args, data_args, training_args, profile_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args, runtime_profiler_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
-        model_args, data_args, training_args, profile_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args, runtime_profiler_args = parser.parse_args_into_dataclasses()
 
     if data_args.data_cache is not None:
         os.makedirs(data_args.data_cache, exist_ok=True)
@@ -333,16 +351,11 @@ def main():
         paddle.distributed.init_parallel_env()
 
     # Log model and data config
-    profile_args.profile_seq_len = model_args.seq_length
-    profile_args.profile_global_batch_size = training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps * training_args.dataset_world_size
-    profile_args.profile_mixed_precision = 'bf16' if training_args.bf16 else 'fp16' if training_args.fp16 else 'fp32'
-    profile_args.profile_layer_num = model_args.num_hidden_layers
-    profile_args.profile_model_name = "llama"
+    runtime_profiler_initalize_manully(runtime_profiler_args, training_args, model_args)
     training_args.print_config(model_args, "Model")
     training_args.print_config(data_args, "Data")
     training_args.print_config(training_args, "Training")
-    training_args.print_config(profile_args, "Profile")
-    # print("[auto-parallel] training_args:", training_args)
+    training_args.print_config(runtime_profiler_args, "RuntimeProfile")
 
     # Log on each process the small summary:
     logger.warning(
@@ -390,8 +403,6 @@ def main():
         model = model_class.from_config(config, dtype="float32")
         criterion = criterion_class(config)
 
-    print("[auto-parallel] orginal model:", model)
-
     if training_args.recompute: # 对应模型定义时所述，Recompute defaults to False and is controlled by Trainer
         def fn(layer):
             if hasattr(layer, "enable_recompute") and (layer.enable_recompute is False or layer.enable_recompute == 0):
@@ -436,12 +447,9 @@ def main():
         train_dataset=train_dataset,
         eval_dataset=None,
         optimizers=(None, lr_scheduler),
-        profile_args=profile_args,
+        runtime_profiler_args=runtime_profiler_args,
     )
     print("[auto-parallel] PretrainingTrainer OK")    
-    
-    # global_mesh = paddle.distributed.fleet.auto.get_mesh()
-    # print(f'[auto-parallel] global_mesh: {global_mesh}')
     
     # Training
     if training_args.do_train:

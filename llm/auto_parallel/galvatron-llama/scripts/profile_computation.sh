@@ -22,7 +22,7 @@ TRAIN_ARGS="
     --max_grad_norm 1.0 \
     --learning_rate 3e-05 \
     --min_learning_rate 3e-06 \
-    --max_steps 30 \
+    --max_steps 25 \
     --logging_steps 1 \
     --continue_training 0 \
     --do_train true \
@@ -40,8 +40,8 @@ TRAIN_ARGS="
 
 # [seq_length] [num_hidden_layers]
 MODEL_ARGS="
-    --model_name_or_path "meta-llama/Meta-Llama-3-8B-Instruct" \
-    --tokenizer_name_or_path "meta-llama/Meta-Llama-3-8B-Instruct" \
+    --model_name_or_path "llama" \
+    --tokenizer_name_or_path "llama" \
     --num_hidden_layers 16 \
     --intermediate_size 11008 \
     --vocab_size 32000 \
@@ -77,7 +77,7 @@ PARALLEL_ARGS=(
     --pipeline_schedule_mode "1F1B"
     --sep_parallel_degree 1
     --pipeline_parallel_config "enable_send_recv_overlap"
-    --data_parallel_config "enable_allreduce_avg_in_gradinent_scale,gradient_sync_after_accumulate"
+    --data_parallel_config "enable_allreduce_avg_in_gradinent_scale gradient_sync_after_accumulate"
     --sharding_parallel_config "enable_overlap"
     --tensor_parallel_config "enable_mp_async_allreduce"
 )
@@ -99,19 +99,23 @@ DATA_ARGS="
     --split 949,50,1 \
     --max_seq_length 1024"
 
-# [profile]
-PROFILE_ARGS="
+# [runtime profiler]
+RUNTIME_PROFILE_ARGS="
     --profile_time_flag 1 \
-    --profile_memory_flag 0 \
     --profile_forward_only 1 \
-    --profile_type time \
+    --save_time_flag 1 \
+"
+
+# [model profiler]
+MODEL_PROFILER_ARGS="
+    --profile_type computation \
     --profile_mode batch \
     --profile_min_batch_size 1 \
     --profile_max_batch_size 12 \
     --profile_batch_size_step 1 \
     --layernum_min 2 \
     --layernum_max 4 \
-    --profile_seq_length_list 1024 \
+    --profile_fixed_seq_length_list 1024 \
     --num_layertype 1 \
 "
 
@@ -122,4 +126,5 @@ python ./profile.py \
     "${PARALLEL_ARGS[@]}" \
     $DEFAULT_OPTIMIZER \
     $DATA_ARGS \
-    $PROFILE_ARGS
+    $RUNTIME_PROFILE_ARGS \
+    $MODEL_PROFILER_ARGS

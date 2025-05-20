@@ -10,11 +10,11 @@ export PYTHONPATH=../../../:$PYTHONPATH
 
 TRAINER="./train_dist_random.py"
 LAUNCHER="python -u -m paddle.distributed.launch"
-LAUNCHER="${LAUNCHER} --gpus 0,1,2,3,4,5,6,7"  # 设置需要使用的GPU
+LAUNCHER="${LAUNCHER} --gpus 4,5,6,7"  # 设置需要使用的GPU
 LAUNCHER="${LAUNCHER} --log_dir output/$task_name""_log ${TRAINER} --output_dir "./output""
 
 export LAUNCHER=$LAUNCHER
-export WORLD_SIZE=8
+export WORLD_SIZE=4
 
 # [max_steps] [logging_steps] [enable_auto_parallel]
 TRAIN_ARGS="
@@ -23,7 +23,7 @@ TRAIN_ARGS="
     --max_grad_norm 1.0 \
     --learning_rate 3e-05 \
     --min_learning_rate 3e-06 \
-    --max_steps 30 \
+    --max_steps 25 \
     --logging_steps 1 \
     --continue_training 0 \
     --do_train true \
@@ -41,8 +41,8 @@ TRAIN_ARGS="
 
 # [seq_length] [num_hidden_layers]
 MODEL_ARGS="
-    --model_name_or_path "meta-llama/Meta-Llama-3-8B-Instruct" \
-    --tokenizer_name_or_path "meta-llama/Meta-Llama-3-8B-Instruct" \
+    --model_name_or_path "llama" \
+    --tokenizer_name_or_path "llama" \
     --num_hidden_layers 16 \
     --intermediate_size 11008 \
     --vocab_size 32000 \
@@ -84,7 +84,7 @@ PARALLEL_ARGS=(
 )
 
 # [fused] [flash_attention]
-DEFAULT_OPTIMIZER="
+DEFAULT_OPTIMIZER_ARGS="
     --fuse_attention_ffn true \
     --fuse_attention_qkv true \
     --fused_linear_param_grad_add 1 \
@@ -100,20 +100,20 @@ DATA_ARGS="
     --split 949,50,1 \
     --max_seq_length 1024"
 
-# [profile]
-PROFILE_ARGS="
-    --profile_time_flag 0 \
+# [runtime profiler]
+RUNTIME_PROFILE_ARGS="
     --profile_memory_flag 1 \
-    --profile_forward_only 0 \
+    --save_memory_flag 1 \
+"
+
+# [model profiler]
+MODEL_PROFILER_ARGS="
     --profile_type memory \
     --profile_mode static \
-    --profile_global_batch_size 8 \
-    --profile_min_batch_size 1 \
-    --profile_max_batch_size 12 \
-    --profile_batch_size_step 1 \
+    --profile_fixed_batch_size 8 \
     --layernum_min 1 \
     --layernum_max 2 \
-    --profile_seq_length_list 1024 \
+    --profile_fixed_seq_length_list 1024 \
     --num_layertype 1 \
     --max_tp_deg 8 \
 "
@@ -123,6 +123,7 @@ python ./profile.py \
     $TRAIN_ARGS \
     $CONFIG_ARGS \
     "${PARALLEL_ARGS[@]}" \
-    $DEFAULT_OPTIMIZER \
+    $DEFAULT_OPTIMIZER_ARGS \
     $DATA_ARGS \
-    $PROFILE_ARGS
+    $RUNTIME_PROFILE_ARGS \
+    $MODEL_PROFILER_ARGS

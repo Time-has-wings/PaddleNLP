@@ -103,13 +103,12 @@ class AutoTrainer(Trainer):
         self._in_pir_mode = paddle.base.framework.get_flags("FLAGS_enable_pir_api")["FLAGS_enable_pir_api"]
 
         # @added by linguangming
-        self.profile_args = None
-        if kwargs.get("profile_args", None) is not None:
-            print(f"[auto_parallel] AutoTrainer get profile_args")
-            self.profile_args = kwargs["profile_args"]
-            self.runtime_profiler = RuntimeProfiler(self.profile_args)
-            self.runtime_profiler.set_time_profiler(start_iter=10, end_iter=20)
-            self.runtime_profiler.set_memory_profiler(max_profile_memory_iter=5)
+        self.runtime_profiler_args = kwargs['runtime_profiler_args']
+        print(f"[auto_parallel] AutoTrainer get runtime_profiler_args")
+        self.runtime_profiler_args = kwargs["runtime_profiler_args"]
+        self.runtime_profiler = RuntimeProfiler(self.runtime_profiler_args)
+        self.runtime_profiler.set_time_profiler(start_iter=10, end_iter=20)
+        self.runtime_profiler.set_memory_profiler(max_profile_memory_iter=5)
 
     @classmethod
     def parallel_model(cls, model, training_args: AutoTrainingArguments):
@@ -551,7 +550,7 @@ class AutoTrainer(Trainer):
                     if schedule_start_step >= 0:
                         switch_job_schedule_profiler(model, step, schedule_start_step, schedule_end_step)
 
-                if self.profile_args is not None:
+                if self.runtime_profiler_args is not None:
                     self.runtime_profiler.profile_time_start(step)
                     self.runtime_profiler.profile_memory(step, stage="Before Forward")
                     
@@ -581,7 +580,7 @@ class AutoTrainer(Trainer):
 
                         self.timers and self.timers("forward-backward").stop()
                         
-                        if self.profile_args is not None:
+                        if self.runtime_profiler_args is not None:
                             self.runtime_profiler.profile_memory(step, stage="After Backward")
 
                         self.timers and self.timers("optimizer-step").start()
@@ -596,7 +595,7 @@ class AutoTrainer(Trainer):
 
                         self.optimizer_step()
                         
-                        if self.profile_args is not None:
+                        if self.runtime_profiler_args is not None:
                             self.runtime_profiler.post_profile_memory(step)
                             self.runtime_profiler.profile_time_end(step)
                             
@@ -731,10 +730,10 @@ class AutoTrainer(Trainer):
         if loss is not None and self.args.gradient_accumulation_steps > 1 and not self._enable_delay_scale_loss():
             loss = loss / self.args.gradient_accumulation_steps
 
-        if self.profile_args is not None:
+        if self.runtime_profiler_args is not None:
             self.runtime_profiler.profile_memory(self.state.global_step, stage="After Forward")
         
-        if self.profile_args.profile_forward_only:
+        if self.runtime_profiler_args.profile_forward_only:
             return loss
 
         if self.do_grad_scaling:

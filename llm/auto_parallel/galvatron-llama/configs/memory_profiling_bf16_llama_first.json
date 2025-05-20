@@ -1,0 +1,49 @@
+{
+    "1_1_4_False": {
+        "layernum[1]_bsz8_seq1024_first_ms": 1773.1826171875,
+        "layernum[1]_bsz8_seq1024_first_act": 762.853759765625,
+        "layernum[1]_bsz8_seq1024_first_act_peak": 3012.828369140625,
+        "layernum[2]_bsz8_seq1024_first_ms": 2546.240478515625,
+        "layernum[2]_bsz8_seq1024_first_act": 1165.150634765625,
+        "layernum[2]_bsz8_seq1024_first_act_peak": 3415.125244140625
+    },
+    "1_2_2_False": {
+        "layernum[1]_bsz8_seq1024_first_ms": 1773.3115234375,
+        "layernum[1]_bsz8_seq1024_first_act": 1060.886962890625,
+        "layernum[1]_bsz8_seq1024_first_act_peak": 3560.836181640625,
+        "layernum[2]_bsz8_seq1024_first_ms": 2546.392822265625,
+        "layernum[2]_bsz8_seq1024_first_act": 1495.183837890625,
+        "layernum[2]_bsz8_seq1024_first_act_peak": 3995.133056640625
+    },
+    "1_4_1_False": {
+        "layernum[1]_bsz8_seq1024_first_ms": 1773.5693359375,
+        "layernum[1]_bsz8_seq1024_first_act": 1656.906494140625,
+        "layernum[1]_bsz8_seq1024_first_act_peak": 4656.804931640625,
+        "layernum[2]_bsz8_seq1024_first_ms": 2546.697509765625,
+        "layernum[2]_bsz8_seq1024_first_act": 2155.172119140625,
+        "layernum[2]_bsz8_seq1024_first_act_peak": 5155.070556640625
+    },
+    "1_1_4_True": {
+        "layernum[1]_bsz8_seq1024_first_ms": 1773.1826171875,
+        "layernum[1]_bsz8_seq1024_first_act": 392.556884765625,
+        "layernum[1]_bsz8_seq1024_first_act_peak": 2642.531494140625,
+        "layernum[2]_bsz8_seq1024_first_ms": 2546.240478515625,
+        "layernum[2]_bsz8_seq1024_first_act": 424.556884765625,
+        "layernum[2]_bsz8_seq1024_first_act_peak": 2674.531494140625
+    },
+    "2_1_2_False": {
+        "layernum[2]_bsz8_seq1024_first_ms": 2546.2763671875,
+        "layernum[2]_bsz8_seq1024_first_act": 804.12548828125,
+        "layernum[2]_bsz8_seq1024_first_act_peak": 1330.0625
+    },
+    "2_2_1_False": {
+        "layernum[2]_bsz8_seq1024_first_ms": 2546.4794921875,
+        "layernum[2]_bsz8_seq1024_first_act": 868.15673828125,
+        "layernum[2]_bsz8_seq1024_first_act_peak": 1189.03125
+    },
+    "4_1_1_False": {
+        "layernum[4]_bsz8_seq1024_first_ms": 5092.52685546875,
+        "layernum[4]_bsz8_seq1024_first_act": 1607.68798828125,
+        "layernum[4]_bsz8_seq1024_first_act_peak": 2121.5625
+    }
+}
