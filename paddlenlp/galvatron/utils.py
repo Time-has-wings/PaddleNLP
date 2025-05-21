@@ -31,7 +31,7 @@ class Strategy:
     tp_size: int = field(default=1, metadata={"help": "The number of threads to use for parallel processing."})
     dp_size: int = field(default=1, metadata={"help": "The number of data parallelism to use."})
     sharding_stage: int = field(default=0, metadata={"help": "The stage of sharding. 0: no sharding, 1: sharding1, 2: sharding2, 3: sharding3"})
-    recompute: bool = field(default=False, metadata={"help": "Whether to use recompute."})
+    recompute: int = field(default=0, metadata={"help": "Whether to use recompute."})
     
     def serialize(self):
         text = f'pp{self.pp_size}_tp{self.tp_size}_dp{self.dp_size}_stage{self.sharding_stage}_recompute{self.recompute}'
@@ -50,7 +50,7 @@ class Strategy:
                 elif 'stage' in item:
                     self.sharding_stage = int(item.split('stage')[1])
                 elif 'recompute' in item:
-                    self.recompute = bool(int(item.split('recompute')[1]))
+                    self.recompute = int(item.split('recompute')[1])
         elif isinstance(text, dict):
             self.pp_size = text.get('pp_size', self.pp_size)
             self.tp_size = text.get('tp_size', self.tp_size)
