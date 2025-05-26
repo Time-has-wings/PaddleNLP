@@ -403,7 +403,7 @@ def main():
         model = model_class.from_config(config, dtype="float32")
         criterion = criterion_class(config)
 
-    if training_args.recompute: # 对应模型定义时所述，Recompute defaults to False and is controlled by Trainer
+    if training_args.recompute: # As described in the corresponding model definition, Recompute defaults to False and is controlled by Trainer
         def fn(layer):
             if hasattr(layer, "enable_recompute") and (layer.enable_recompute is False or layer.enable_recompute == 0):
                 layer.enable_recompute = True
