@@ -2,8 +2,11 @@ from itertools import product
 import sys
 import copy
 import os
-from ..utils import read_json_config, write_json_config
+from ..utils import read_json_config, write_json_config, num2str
 from dataclasses import dataclass, field
+from typing import List
+from collections import defaultdict
+import numpy as np
 
 @dataclass
 class ModelProfilerArguments:
@@ -39,23 +42,6 @@ class ModelProfilerArguments:
         self.profile_fixed_seq_length_list = args_dict.pop('--profile_fixed_seq_length_list', '1024,2048')
         self.num_layertype = int(args_dict.pop('--num_layertype', 1))
         self.max_tp_deg = int(args_dict.pop('--max_tp_deg', 1))
-
-def get_current_all_args():
-    args_dict = {}
-    i = 0
-    argv = sys.argv
-    while i < len(argv):
-        arg = argv[i]
-        if arg.startswith('-'):
-            if i + 1 < len(argv) and not argv[i + 1].startswith('-'):
-                args_dict[arg] = argv[i + 1]
-                i += 2  
-            else:
-                args_dict[arg] = True
-                i += 1
-        else:
-            i += 1
-    return args_dict
 
 class ModelProfiler:
     def __init__(self, args:ModelProfilerArguments, args_dict:dict):
@@ -149,7 +135,7 @@ class ModelProfiler:
         args = self.args
         assert args.profile_mode == 'static' or args.profile_mode == "sequence", 'memory profile support static and sequence mode'
         
-        world_size = int(os.getenv('WORLD_SIZE'))
+        world_size = int(os.getenv('PROFILE_WORLD_SIZE'))
         max_tp_deg = min(world_size, args.max_tp_deg)
         if args.profile_mode != 'static':
             max_tp_deg = 1
@@ -203,7 +189,7 @@ class ModelProfiler:
                         
                         ARGS['--recompute'] = 0
                         
-                        ARGS['--num_hidden_layers'] = layer_num  # 只支持decoder-only
+                        ARGS['--num_hidden_layers'] = layer_num  # 只支持decoder-only TODO 这个需要做替换，支持多种，要不然很多key的格式不统一
                         ARGS['--seq_length'] = seq_tuple[0]
                         
                         ARGS['--per_device_train_batch_size'] = args.profile_fixed_batch_size // ARGS['--sharding_parallel_degree']
@@ -225,8 +211,214 @@ class ModelProfiler:
             os.system(CMD)
     
     def _process_memory_data(self):
-        pass
+        args = self.args
+        
+        # Merge the first and last rank memory profiling data
+        first_rank_path, last_rank_path, file_path = self.get_memory_profiling_path()
+        first_rank_config, last_rank_config = read_json_config(first_rank_path), read_json_config(last_rank_path)
+        merged_data = {}
+        for key in first_rank_config:
+            merged_data[key] = {**first_rank_config[key], **last_rank_config[key]}
+        write_json_config(file_path, merged_data)
+        
+        # process memory profiling data for each sequence length
+        config = read_json_config(file_path)
+        bsz = args.profile_fixed_batch_size # memory profiling only support static or sequence mode, and in this case, the batch size is fixed
+        layernum_list_base = self.layernum_lists[0]
+        layernum_lists_other = self.layernum_lists[1:]  # 其他的layernum_list
+        for seq_tuple in self.product_sequence_length_list:
+            self._process_single_sequence_config(seq_tuple, config, layernum_list_base, layernum_lists_other, bsz)
     
+        # Write the processed config back to the file
+        write_json_config(file_path, config)
+    
+    def _process_single_sequence_config(self, seq_tuple, config, layernum_list_base:List[int], layernum_lists_other:List[List[int]], bsz:int):
+        seq_info = num2str(list(seq_tuple), 'seq')
+        print(f'Processing sequence length: {seq_tuple}')
+        
+        args = self.args
+        # Initialize result containers
+        param_result_list = [dict() for _ in range(args.num_layertype)]
+        act_result_list = [dict() for _ in range(args.num_layertype)]
+        param_list = [-1] * args.num_layertype
+        
+        # Get some information 
+        world_size = int(os.getenv('PROFILE_WORLD_SIZE'))
+        layernum_diff = args.layernum_max - args.layernum_min
+        
+        # [Step1] Process tensor paralleism memory costs (only use the case which pp_deg is 1 and recompute is False)
+        fixed_pp_deg, tp_deg, fixed_recompute = 1, 1, False
+        while fixed_pp_deg * tp_deg <= world_size:
+            dp_deg = world_size // (fixed_pp_deg * tp_deg)
+            strategy = f'{fixed_pp_deg}_{tp_deg}_{dp_deg}_{fixed_recompute}'
+            if strategy in config:  # [NOTE] 这个地方其实应该是assert strategy in config
+                re = config[strategy]
+                for i in range(args.num_layertype):
+                    layernum_key_0 = layernum_list_base # 这是一个List[int]
+                    layernum_key_1 = layernum_lists_other[i]  # 这也是一个List[int]
+                    
+                    # Calculate parameter memory per layer
+                    param_per_layer = (
+                                        (re[self.key_format(layernum_key_1, bsz, seq_tuple[0], 'first', 'ms')] 
+                                        - re[self.key_format(layernum_key_0, bsz, seq_tuple[0], 'first', 'ms')]) 
+                                        / layernum_diff
+                                        * fixed_pp_deg # 好像没有必要*fix_pp_deg
+                                        / 4 # model states size = 4 * param size
+                                    )
+                    param_per_layer *= dp_deg # when memory profile, we use zero-3. Now we restore the influence.
+            
+                    # Calculate activation memory per sample
+                    act_per_layer_per_sample = (
+                                                (re[self.key_format(layernum_key_1, bsz, seq_tuple[0], 'first', 'act')] 
+                                                - re[self.key_format(layernum_key_0, bsz, seq_tuple[0], 'first', 'act')]) 
+                                                / layernum_diff
+                                            )
+                    act_per_layer_per_sample *= dp_deg / bsz  # namely, act_per_layer_per_sample /= (bsz / dp_deg) 
+
+                    # store the results
+                    param_result_list[i][tp_deg] = param_per_layer
+                    act_result_list[i][tp_deg] = act_per_layer_per_sample
+                    param_list[i] = max(param_list[i], param_per_layer * tp_deg)
+            tp_deg *= 2
+            
+        for i in range(args.num_layertype):
+            print(f'layertype {i}:')
+            print(f'param: {param_list[i]}')
+            print(f'act_dict: {act_result_list[i]}')
+            
+        # [Step2] Process checkpoint memory costs
+        act_dict_c_list = [dict() for _ in range(args.num_layertype)]
+        act_cpt_list = [-1] * args.num_layertype
+        
+        fixed_pp_deg, tp_deg, fixed_recompute = 1, 1, True
+        while fixed_pp_deg * tp_deg <= world_size:
+            dp_deg = world_size // (fixed_pp_deg * tp_deg)
+            strategy = f'{fixed_pp_deg}_{tp_deg}_{dp_deg}_{fixed_recompute}'
+            if strategy in config:
+                re = config[strategy]
+                for i in range(args.num_layertype):
+                    layernum_key_0 = layernum_list_base
+                    layernum_key_1 = layernum_lists_other[i]
+                    
+                    # Calculate activation memory with checkpointing
+                    act_per_layer_per_sample = (
+                                                (re[self.key_format(layernum_key_1, bsz, seq_tuple[0], 'first', 'act')]
+                                                - re[self.key_format(layernum_key_0, bsz, seq_tuple[0], 'first', 'act')])
+                                                / layernum_diff
+                                            )
+                    act_per_layer_per_sample *= dp_deg / bsz  # namely, act_per_layer_per_sample /= (bsz / dp_deg)
+                    
+                    act_dict_c_list[i][tp_deg] = act_per_layer_per_sample
+                    act_cpt_list[i] = max(act_cpt_list[i], act_per_layer_per_sample * tp_deg)
+            tp_deg *= 2
+        
+        for i in range(args.num_layertype):
+            print(f'layertype {i} with checkpoint:')
+            print(f'act_cpt_dict: {act_dict_c_list[i]}')
+            print(f'act_cpt: {act_cpt_list[i]}')
+            act_result_list[i]['checkpoint'] = act_cpt_list[i]
+        
+        
+        # [Step3] Process pipeline parallelism memory costs
+        inf = 1e6
+        other_memory_pp_off = {"model_states": defaultdict(lambda: inf), "activation": defaultdict(lambda: inf)}
+        other_memory_pp_on_first = {"model_states": defaultdict(lambda: inf), "activation": defaultdict(lambda: inf)}
+        other_memory_pp_on_last = {"model_states": defaultdict(lambda: inf), "activation": defaultdict(lambda: inf)}
+
+        pp_deg, fixed_recompute = 1, False
+        while pp_deg <= world_size:
+            tp_deg = 1
+            while pp_deg * tp_deg <= world_size:
+                dp_deg = world_size // (pp_deg * tp_deg)
+                strategy = f'{pp_deg}_{tp_deg}_{dp_deg}_{fixed_recompute}'
+
+                if strategy in config:
+                    re = config[strategy]
+
+                    layernum = pp_deg if pp_deg > 1 else layernum_list_base[0]
+                    layernum_list = [layernum] * args.num_layertype
+                    
+                    ms_cost = [param_result_list[l][tp_deg] for l in range(args.num_layertype)]
+                    act_cost = [act_result_list[l][tp_deg] for l in range(args.num_layertype)]
+
+                    # Calculate total memory costs for first and last pipeline stages
+                    layer_ms_costs_first = self.total_memcost(pp_deg, layernum, args.num_layertype, ms_cost, 0)
+                    layer_ms_costs_last = self.total_memcost(pp_deg, layernum, args.num_layertype, ms_cost, pp_deg - 1)
+                    layer_act_costs_first = self.total_memcost(pp_deg, layernum, args.num_layertype, act_cost, 0)
+                    layer_act_costs_last = self.total_memcost(pp_deg, layernum, args.num_layertype, act_cost, pp_deg - 1)
+                    
+                    # Calculate other memory costs (Actually, this is unused)
+                    # other_ms_first = re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "ms")] - layer_ms_costs_first
+                    # other_ms_last = re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "ms")] - layer_ms_costs_last
+                    
+                    # Adjust for ZeRO-3 (default use zero3)
+                    other_ms_first = (re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "ms")] - layer_ms_costs_first / dp_deg) * dp_deg
+                    other_ms_last = (re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "ms")] - layer_ms_costs_last / dp_deg) * dp_deg
+
+                    # Calculate activation memory peaks
+                    act_peak_first = max(re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "act_peak")], re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "act")])
+                    act_peak_last = max(re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "act_peak")], re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "act")])
+                    
+                    other_act_first = (act_peak_first - layer_act_costs_first * bsz / dp_deg) / (bsz / dp_deg)
+                    other_act_last = (act_peak_last - layer_act_costs_last * bsz / dp_deg) / (bsz / dp_deg)
+                    
+                    # Ensure non-negative memory costs
+                    other_ms_first = max(other_ms_first, 0)
+                    other_ms_last = max(other_ms_last, 0)
+                    other_act_first = max(other_act_first, 0)
+                    other_act_last = max(other_act_last, 0)
+                    
+                    # Store the results
+                    tp_key = tp_deg # 当增加enable_vocab_tp后，这个地方需要做出修改
+                    if pp_deg == 1:
+                        other_memory_pp_off["model_states"][tp_key] = min(other_memory_pp_off["model_states"][tp_key], other_ms_first)
+                        other_memory_pp_off["activation"][tp_key] = min(other_memory_pp_off["activation"][tp_key], other_act_first)
+                    else:
+                        other_memory_pp_on_first["model_states"][tp_key] = min(other_memory_pp_on_first["model_states"][tp_key], other_ms_first)
+                        other_memory_pp_on_first["activation"][tp_key] = min(other_memory_pp_on_first["activation"][tp_key], other_act_first)
+                        other_memory_pp_on_last["model_states"][tp_key] = min(other_memory_pp_on_last["model_states"][tp_key], other_ms_last)
+                        other_memory_pp_on_last["activation"][tp_key] = min(other_memory_pp_on_last["activation"][tp_key], other_act_last)
+                tp_deg *= 2
+            pp_deg *= 2
+        print('other_memory_pp_off:', other_memory_pp_off)
+        print('other_memory_pp_on_first:', other_memory_pp_on_first)
+        print('other_memory_pp_on_last:', other_memory_pp_on_last)
+        
+        # [Step4] Adjust some tp_deg
+        for tp_deg in [2, 4, 8]:
+            for i in range(args.num_layertype):
+                if tp_deg not in act_result_list[i]:
+                    act_result_list[i][tp_deg] = act_result_list[i][tp_deg // 2] / 2
+            for memory_dict in [other_memory_pp_off, other_memory_pp_on_first, other_memory_pp_on_last]:
+                for key in ['model_states', 'activation']:
+                    if tp_deg not in memory_dict[key]:
+                        memory_dict[key][tp_deg] = memory_dict[key][tp_deg // 2] / 2
+        print('After adjust tp_deg 2, 4, 8:')
+        print('act_result_list:', act_result_list)
+        print('other_memory_pp_off:', other_memory_pp_off)
+        print('other_memory_pp_on_first:', other_memory_pp_on_first)
+        print('other_memory_pp_on_last:', other_memory_pp_on_last)
+    
+        # [Step5] Write the results into config files
+        for i in range(args.num_layertype):
+            config_key = f'layertype_{i}'
+            if config_key not in config:
+                config[config_key] = {}
+            config[config_key][seq_tuple[i]] = {
+                'parameter_size' : param_list[i],
+                'tp_activation_per_bsz_dict': act_result_list[i],
+            }
+            
+        memory_keys = {
+            "other_memory_pp_off": other_memory_pp_off,
+            "other_memory_pp_on_first": other_memory_pp_on_first,
+            "other_memory_pp_on_last": other_memory_pp_on_last,
+        }
+        for config_key, value in memory_keys.items():
+            if config_key not in config:
+                config[config_key] = {}
+            config[config_key][seq_info[3:]] = copy.deepcopy(value)
+            
     # =================Utils Functions================
     def set_bsz_list(self):
         args = self.args
@@ -245,7 +437,7 @@ class ModelProfiler:
         args = self.args
         self.layernum_lists = []
         
-        base_list = [args.layernum_min] * args.num_layertype  # 注意需要设置这个值
+        base_list = [args.layernum_min] * args.num_layertype
         self.layernum_lists.append(base_list)
         
         for idx in range(args.num_layertype):
@@ -285,9 +477,11 @@ class ModelProfiler:
         mixed_precision = 'bf16' if self.args_dict.get('--bf16') else 'fp16' if self.args_dict.get('--fp16') else 'fp32'
         first_rank_file_name = f'configs/memory_profiling_{mixed_precision}_{model_name}_first.json'
         last_rank_file_name = f'configs/memory_profiling_{mixed_precision}_{model_name}_last.json'
+        file_name = f'configs/memory_profiling_{mixed_precision}_{model_name}.json'
         first_rank_path = os.path.join(path, first_rank_file_name)
         last_rank_path = os.path.join(path, last_rank_file_name)
-        return first_rank_path, last_rank_path
+        file_path = os.path.join(path, file_name)
+        return first_rank_path, last_rank_path, file_path
     
     def get_time_profiling_path(self):
         path = os.getcwd()
@@ -296,5 +490,30 @@ class ModelProfiler:
         time_file_name = f'configs/computation_profiling_{mixed_precision}_{model_name}_rank[0].json'  # when time profiling, only one gpu is used
         time_path = os.path.join(path, time_file_name)
         return time_path
+    
+    def key_format(self, layernum:List[int], bsz:int, seq:int, rank:str, type:str):
+        text = ""
+        text += f'layernum[{",".join(map(str, layernum))}]'
+        text += f'_bsz{bsz}'
+        text += f'_seq{seq}'
+        text += f'_{rank}' # 'first' or 'last'
+        text += f'_{type}' # 'ms' or 'act' or 'act_peak'
+        return text
+    
+    def total_memcost(self, pp_deg, layernum, layertype, per_layer_cost:List[float], stage_idx:int):
+        layer_costs = []
+        for i in range(layertype):
+            layer_costs.extend([per_layer_cost[i]] * layernum)
         
+        total_layer_num = layernum * layertype
+        avg_layer_num = int(total_layer_num // pp_deg)
+        last_layer_num = total_layer_num - avg_layer_num * (pp_deg - 1)
+        pp_divide = [avg_layer_num] * (pp_deg - 1) + [last_layer_num]
+        
+        # Verify equal distribution
+        assert avg_layer_num == last_layer_num
+        
+        start_idx = int(np.sum(pp_divide[:stage_idx]))
+        end_idx = int(np.sum(pp_divide[: stage_idx + 1]))
+        return np.sum(layer_costs[start_idx:end_idx])
         

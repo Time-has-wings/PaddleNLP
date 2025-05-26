@@ -14,7 +14,7 @@ LAUNCHER="${LAUNCHER} --gpus 0,1,2,3,4,5,6,7"  # 设置需要使用的GPU
 LAUNCHER="${LAUNCHER} --log_dir output/$task_name""_log ${TRAINER} --output_dir "./output""
 
 export LAUNCHER=$LAUNCHER
-export WORLD_SIZE=8
+export PROFILE_WORLD_SIZE=8
 
 # [max_steps] [logging_steps] [enable_auto_parallel]
 TRAIN_ARGS="

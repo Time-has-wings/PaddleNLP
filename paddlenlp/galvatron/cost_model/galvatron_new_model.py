@@ -716,6 +716,9 @@ def pipeline_costmodel(timecostmodel, layer_num_list, model_args_list, train_arg
     layer_num = len(strategies)
     from galvatron.utils import form_strategy, strategy_str2list
     strategies_set = list(set([form_strategy(s) for s in strategies]))
+    
+    
+    # 计算出每种层在所有种类的策略下的时间开销
     timecosts_dict_bsz_chunked, timecosts_dict_compute = {}, {}
     for layer_type_id in range(len(layer_num_list)):
         timecosts_dict_bsz_chunked[layer_type_id], timecosts_dict_compute[layer_type_id] = {}, {}

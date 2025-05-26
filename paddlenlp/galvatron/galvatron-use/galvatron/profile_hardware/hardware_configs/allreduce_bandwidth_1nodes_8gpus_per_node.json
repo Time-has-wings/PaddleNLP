@@ -1,7 +1,0 @@
-{
-    "allreduce_size_8_consec_1": 4.48694,
-    "allreduce_size_4_consec_1": 4.40451,
-    "allreduce_size_4_consec_0": 8.5545,
-    "allreduce_size_2_consec_1": 7.8491,
-    "allreduce_size_2_consec_0": 13.2872
-}

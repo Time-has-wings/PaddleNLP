@@ -1,4 +1,5 @@
-from paddlenlp.galvatron.profiler.model_profiler import ModelProfiler, get_current_all_args, ModelProfilerArguments
+from paddlenlp.galvatron.profiler.model_profiler import ModelProfiler, ModelProfilerArguments
+from paddlenlp.galvatron.utils import get_current_all_args
 
 if __name__ == '__main__':
     args_dict = get_current_all_args()

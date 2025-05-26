@@ -1,6 +1,7 @@
 import json
 import os
 from typing import List
+import sys
 from dataclasses import dataclass, field
 
 def read_json_config(path):
@@ -17,6 +18,8 @@ def write_json_config(path, config):
 # 这个注意一下格式啊
 def num2str(num, type:str):
     if type == 'seq':
+        if isinstance(num, List) and len(num) == 1:
+            num = num[0]        
         if isinstance(num, List):
             info = f'seq[{",".join(map(str, num))}]'
         else:
@@ -68,3 +71,20 @@ class Strategy:
     
     def __str__(self):
         return self.serialize()
+    
+def get_current_all_args():
+    args_dict = {}
+    i = 0
+    argv = sys.argv
+    while i < len(argv):
+        arg = argv[i]
+        if arg.startswith('-'):
+            if i + 1 < len(argv) and not argv[i + 1].startswith('-'):
+                args_dict[arg] = argv[i + 1]
+                i += 2  
+            else:
+                args_dict[arg] = True
+                i += 1
+        else:
+            i += 1
+    return args_dict

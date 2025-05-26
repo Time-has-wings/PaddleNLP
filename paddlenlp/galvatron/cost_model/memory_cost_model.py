@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from ..utils import Strategy
+import numpy as np
 
 @dataclass
 class MemoryCostModelArguments:
@@ -9,7 +10,7 @@ class MemoryCostModelArguments:
     stage_idx: int = field(default=0, metadata={"help": "The stage index of the model."})
     accumulation_steps: int = field(default=-1, metadata={"help": "The number of accumulation steps."})
 
-    parameter_memory: float = field(default=0.0, metadata={"help": "The parameter memory of the model."})
+    parameter_memory: float = field(default=0.0, metadata={"help": "The parameter memory of the model."})  # parameter memory of per layer(in MB) 
     tp_activation_per_bsz_dict:dict = field(default_factory=lambda: {1:85, 2:47, 4:28, 8:18.5})
  
 class MemoryCostModel:
@@ -18,6 +19,8 @@ class MemoryCostModel:
         self.validate()
         self.initialize()
         self.estimate_parameter_size()
+        self.estimate_model_states_size()
+        self.estimate_activation_size()
         
     def validate(self):
         args = self.args
@@ -34,15 +37,19 @@ class MemoryCostModel:
         self.recompute = strategy.recompute
         
         self.local_batch_size = args.global_batch_size // self.dp_size
-        # TODO 调整1f1b比例
-        
-        # TODO 确认一下paddle是不是异步梯度累积
+        microbatches = [t.shape[0] for t in chunk_like_torch(self.local_batch_size, args.accumulation_steps)]
+        assert args.accumulation_steps == len(microbatches), f'Accumulation steps should be equal to the length of microbatches, but got {args.accumulation_steps} and {len(microbatches)}'
+        end = self.pp_size - args.stage_idx if self.pp_size - args.stage_idx <= args.accumulation_steps else args.accumulation_steps
+        self.act_1f1b_ratio = np.sum(microbatches[:end]) / np.sum(microbatches) if end > 0 else 0.0
+        self.local_batch_size *= self.act_1f1b_ratio
+
+        # TODO check
         if args.accumulation_steps == 1:
-            self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
             self.zero3_ratio = lambda d: (1/d + 0.003)
         else:
-            self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8) * 5/4) if args.mixed_precision else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
-            self.zero3_ratio = lambda d: (1/d + 0.003) * 5/4
+            self.zero2_ratio = (lambda d: (6/8 * (1/d + 0.003) + 2/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (2/4 * (1/d + 0.003) + 2/4))
+            self.zero3_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
         
     def estimate_parameter_size(self):
         args = self.args
@@ -59,6 +66,8 @@ class MemoryCostModel:
         args = self.args
         if self.recompute:
             self.activation_size = args.tp_activation_per_bsz_dict['checkpoint'] * self.local_batch_size # TODO 修改为累积bsz
+            # NOTE adjust for sequence parallelism
+            self.activation_size /= self.tp_size 
         else:
             self.activation_size = args.tp_activation_per_bsz_dict[self.tp_size] * self.local_batch_size # TODO 修改为累积bsz
         
@@ -76,8 +85,10 @@ class OtherMemoryCostModelArguments:
     max_tp_size: int = field(default=8, metadata={"help": "The maximum tp size of the model."})
     world_size: int = field(default=8, metadata={"help": "The world size of the model."})
     pp_size: int = field(default=1, metadata={"help": "The pp size of the model."})
+    sharding_stage: int = field(default=2, metadata={"help": "The sharding stage of the model."})
     global_batch_size: int = field(default=8, metadata={"help": "The global batch size of the model."})
     accumulation_steps: int = field(default=1, metadata={"help": "The number of accumulation steps."})
+    mixed_precision_type: str = field(default='fp16', metadata={"help": "The mixed precision type of the model."})
     paddle_context_memory: float = field(default=0.0, metadata={"help": "The paddle context memory of the model."})
     other_memory_pp_off:dict = field(default_factory=lambda: {'model_states': 640, 'activation': 320})
     other_memory_pp_on:dict = field(default_factory=lambda: {'first_stage':{'model_states': 640, 'activation': 320}, 'last_stage':{'model_states': 640, 'activation': 320}})
@@ -85,17 +96,20 @@ class OtherMemoryCostModelArguments:
 class OtherMemoryCostModel:
     def __init__(self, args:OtherMemoryCostModelArguments):
         self.args = args
+        self.initialize()
+        self.estimate_memory_cost()
         
     def initialize(self):
         args = self.args
-        # TODO 修改一下混合精度等等的逻辑
+        
+        # TODO check
         if args.accumulation_steps == 1:
-            self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
             self.zero3_ratio = lambda d: (1/d + 0.003)
         else:
-            self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8) * 5/4) if args.mixed_precision else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
-            self.zero3_ratio = lambda d: (1/d + 0.003) * 5/4
-        self.zero_ratio = self.zero2_ratio if args.sharding_stage == 2 else self.zero3_ratio
+            self.zero2_ratio = (lambda d: (6/8 * (1/d + 0.003) + 2/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (2/4 * (1/d + 0.003) + 2/4))
+            self.zero3_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+        self.zero_ratio = self.zero2_ratio if args.sharding_stage == 2 else (self.zero3_ratio if args.sharding_stage == 3 else (lambda d: 1.0))
     
     def estimate_memory_cost(self):
         args = self.args
@@ -109,15 +123,15 @@ class OtherMemoryCostModel:
         for tp_size in tp_size_list:
             dp_size = args.world_size // args.pp_size // tp_size
             tp_other_memory_cost = [0 for _ in range(args.pp_size)]
-            other_layers_bsz = args.global_batch_size // dp_size // args.accumulation_steps
+            other_layers_bsz = args.global_batch_size // dp_size // args.accumulation_steps  # already divided by accumulation steps
 
-            if self.pp_size == 1: # no pp -> only one stage
+            if args.pp_size == 1: # no pp -> only one stage
                 tp_other_memory_cost[0] = args.other_memory_pp_off['model_states'][tp_size] * self.zero_ratio(dp_size) + args.other_memory_pp_off['activation'][tp_size] * other_layers_bsz
             else: # pp -> 0:first stage, -1:last stage
                 other_layers_bsz_first = other_layers_bsz * args.pp_size
                 other_layers_bsz_last = other_layers_bsz * 1
                 tp_other_memory_cost[0] = args.other_memory_pp_on['first_stage']['model_states'][tp_size] * self.zero_ratio(dp_size) + args.other_memory_pp_on['first_stage']['activation'][tp_size] * other_layers_bsz_first
-                tp_other_memory_cost[-1] = args.other_memory_pp_on['last_stage']['model_stage'][tp_size] * self.zero_ratio(dp_size) + args.other_memory_pp_on['last_stage']['activation'][tp_size] * other_layers_bsz_last
+                tp_other_memory_cost[-1] = args.other_memory_pp_on['last_stage']['model_states'][tp_size] * self.zero_ratio(dp_size) + args.other_memory_pp_on['last_stage']['activation'][tp_size] * other_layers_bsz_last
             
             for i in range(len(tp_other_memory_cost)):
                 tp_other_memory_cost[i] += args.paddle_context_memory
@@ -126,3 +140,22 @@ class OtherMemoryCostModel:
             
     def get_other_memory_cost(self):
         return self.other_memory_cost
+    
+# some util functions
+def chunk_like_torch(size, chunks):
+    """Implement torch.arange(size).chunk(chunks) behavior using numpy"""
+    if chunks <= 0:
+        raise ValueError("chunks must be positive")
+    
+    chunk_size = (size + chunks - 1) // chunks  # ceiling division
+    
+    # Create splits
+    splits = []
+    for i in range(chunks):
+        start = i * chunk_size
+        if start >= size:
+            break
+        end = min(start + chunk_size, size)
+        splits.append(np.arange(start, end))
+    
+    return splits
