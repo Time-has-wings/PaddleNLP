@@ -338,7 +338,7 @@ class ModelProfiler:
                     layernum = pp_deg if pp_deg > 1 else layernum_list_base[0]
                     layernum_list = [layernum] * args.num_layertype
                     
-                    ms_cost = [param_result_list[l][tp_deg] for l in range(args.num_layertype)]
+                    ms_cost = [param_result_list[l][tp_deg] * 4 for l in range(args.num_layertype)]
                     act_cost = [act_result_list[l][tp_deg] for l in range(args.num_layertype)]
 
                     # Calculate total memory costs for first and last pipeline stages

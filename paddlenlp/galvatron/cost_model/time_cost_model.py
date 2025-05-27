@@ -59,7 +59,7 @@ class TimeCostModel:
         if isinstance(args.forward_computation_time, np.ndarray): # when time profile-mode is batch or sequence, forward_computation time is popt meaning the linear function fitted parameters.
             def linear_func(x, m, c):
                 return m * x + c
-            self.fct = linear_func(self.local_batch_size, args.forward_computation_time[0], args.forward_computation_time[1]) / self.tp_size * args.dummy_layernum # divide by tp_size because the time is profiled on ddp.
+            self.fct = linear_func(self.local_batch_size / self.tp_size , args.forward_computation_time[0], args.forward_computation_time[1]) * args.dummy_layernum # / self.tp_size * args.dummy_layernum # divide by tp_size because the time is profiled on ddp.
         elif isinstance(args.forward_computation_time, float): # when time profile-mode is static, forward_computation_time is a float.
             self.fct = args.forward_computation_time * self.local_batch_size / self.tp_size * args.dummy_layernum
 
@@ -196,7 +196,7 @@ class OtherTimeCostModel:
             if isinstance(args.other_time_profiled, np.ndarray): # when time profile-mode is batch or sequence, forward_computation time is popt meaning the linear function fitted parameters.
                 def linear_func(x, m, c):
                     return m * x + c
-                fct_time = linear_func(args.micro_batch_size // dp_size, args.other_time_profiled[0], args.other_time_profiled[1]) / tp_size # 这个地方有点小bug
+                fct_time = linear_func(args.micro_batch_size / dp_size / tp_size, args.other_time_profiled[0], args.other_time_profiled[1]) # / tp_size
             else:
                 fct_time = args.other_time_profiled * args.micro_batch_size // dp_size / tp_size
             
@@ -205,6 +205,7 @@ class OtherTimeCostModel:
             else: # pp, two stages, we assume the first stage and last stage have the same time cost.
                 self.fct[tp_size] = (fct_time / 2, fct_time / 2)
             tp_size *= 2
+        print(f'fct: {self.fct}')
     
     def estimate_dp_time(self):
         args = self.args
@@ -236,6 +237,7 @@ class OtherTimeCostModel:
         while tp_size <= args.max_tp_size and tp_size * args.pp_size <= args.world_size:
             tp_coe = args.allreduce_coe_dict[tp_size]
             mixed_precision_factor = 4 if args.mixed_precision_type == 'fp32' else 2
+            # mixed_precision_factor = 4 # fixed to 4 when fp16_opt_level = 'O1'
             
             tp_message_size = []
             per_tp_message_time = []
@@ -250,6 +252,7 @@ class OtherTimeCostModel:
                 self.tp_time[tp_size] = (per_tp_message_time[0], per_tp_message_time[-1])  # For T5 model, first stage and last stage have the same time cost.
             
             tp_size *= 2
+        print(f'tp_time: {self.tp_time}')
             
     def get_overlap_time(self, forward_comm_time, forward_comp_time, backward_comm_time, backward_comp_time, tp_time):
         forward_comp_time = forward_comp_time * self.args.dp_overlap_coe

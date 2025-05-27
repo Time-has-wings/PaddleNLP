@@ -7,6 +7,7 @@ from typing import List, Optional
 import numpy as np
 import paddle
 import paddle.distributed as dist
+from paddle import framework, core
 
 from paddlenlp.ops import Topology
 from paddlenlp.trainer import AutoTrainingArguments, PdArgumentParser
@@ -450,6 +451,13 @@ def main():
         runtime_profiler_args=runtime_profiler_args,
     )
     print("[auto-parallel] PretrainingTrainer OK")    
+    
+    print('After model initialization, current allocated memory')
+    current_device = framework._current_expected_place_()
+    max_memory_allocated = core.device_memory_stat_peak_value("Allocated", current_device.get_device_id()) / 2**20
+    current_memory_allocated = core.device_memory_stat_current_value("Allocated", current_device.get_device_id()) / 2**20
+    print(f"Max memory allocated: {max_memory_allocated} MB")
+    print(f"Current memory allocated: {current_memory_allocated} MB")
     
     # Training
     if training_args.do_train:

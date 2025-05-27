@@ -5,9 +5,9 @@ ProfileDataParserArgs="
     --memory_profile_mode static \
     --num_layertype 1 \
     --hidden_size_list 4096 \
-    --layernum_list 16 \
+    --layernum_list 12 \
     --seqlen_list 1024 \
-    --profile_gpu_num 8 \
+    --profile_gpu_num 4 \
     --time_profile_data_path ./configs/computation_profiling_bf16_llama_rank[0].json \
     --memory_profile_data_path ./configs/memory_profiling_bf16_llama.json \
     --overlap_coe_path ./configs/overlap_coefficient.json \
@@ -16,10 +16,10 @@ ProfileDataParserArgs="
 "
 
 CostModelTrainArgs="
-    --strategy pp2_tp2_dp2_stage2_recompute0 \
+    --strategy pp1_tp2_dp2_stage2_recompute0 \
     --global_batch_size 64 \
     --mixed_precision_type bf16 \
-    --accumulation_steps 8 \
+    --accumulation_steps 16 \
 "
 
 python ./cost_model.py ${ProfileDataParserArgs} ${CostModelTrainArgs}

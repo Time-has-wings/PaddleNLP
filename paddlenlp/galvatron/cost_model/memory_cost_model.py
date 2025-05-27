@@ -42,6 +42,7 @@ class MemoryCostModel:
         end = self.pp_size - args.stage_idx if self.pp_size - args.stage_idx <= args.accumulation_steps else args.accumulation_steps
         self.act_1f1b_ratio = np.sum(microbatches[:end]) / np.sum(microbatches) if end > 0 else 0.0
         self.local_batch_size *= self.act_1f1b_ratio
+        print(f'local batch size: {self.local_batch_size}, act_1f1b_ratio: {self.act_1f1b_ratio}')
 
         # TODO check
         if args.accumulation_steps == 1:
@@ -65,11 +66,11 @@ class MemoryCostModel:
     def estimate_activation_size(self):
         args = self.args
         if self.recompute:
-            self.activation_size = args.tp_activation_per_bsz_dict['checkpoint'] * self.local_batch_size # TODO 修改为累积bsz
+            self.activation_size = args.tp_activation_per_bsz_dict['checkpoint'] * self.local_batch_size
             # NOTE adjust for sequence parallelism
             self.activation_size /= self.tp_size 
         else:
-            self.activation_size = args.tp_activation_per_bsz_dict[self.tp_size] * self.local_batch_size # TODO 修改为累积bsz
+            self.activation_size = args.tp_activation_per_bsz_dict[self.tp_size] * self.local_batch_size
         
     def get_memory_cost(self):
         result = {}
@@ -77,6 +78,7 @@ class MemoryCostModel:
         result['model_states'] = self.model_states_size
         result['activation'] = self.activation_size
         result['enc_total'] = self.model_states_size + self.activation_size
+        print(f'result: {result}')
         return result
     
 @dataclass

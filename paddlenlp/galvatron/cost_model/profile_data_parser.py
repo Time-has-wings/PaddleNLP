@@ -181,6 +181,10 @@ class ProfileDataParser:
                 seq_info = int(seq_info)
             self.other_memory_pp_off = self.memory_config['other_memory_pp_off'][int(seq_info)]  # NOTE 此处貌似并没有管不同num_layertype下的其他序列信息
             self.other_memory_pp_on = {'first_stage':self.memory_config['other_memory_pp_on_first'][seq_info], 'last_stage':self.memory_config['other_memory_pp_on_last'][seq_info]}
+            print(f'\tparameter sizes: {self.param_sizes}')
+            print(f'\tactivation sizes: {self.act_sizes}')
+            print(f'\tother memory pp off: {self.other_memory_pp_off}')
+            print(f'\tother memory pp on: {self.other_memory_pp_on}')
         else:
             raise ValueError(f"Unsupported memory profile mode: {args.memory_profile_mode}")
         print("Profile memory configs parsed successfully.")
@@ -230,10 +234,12 @@ class ProfileDataParser:
                 memory_cost_model_args = MemoryCostModelArguments(strategy=strategy, global_batch_size=global_batch_size, mixed_precision_type=mixed_precision_type, stage_idx=stage_idx, accumulation_steps=accumulation_steps, parameter_memory=self.param_sizes[i], tp_activation_per_bsz_dict=self.act_sizes[i])
                 re = MemoryCostModel(memory_cost_model_args).get_memory_cost()
                 memory_per_layer_each_stage[i][stage_idx] = re['enc_total']
+        print(f'\tMemory cost for each layer type at each stage: {memory_per_layer_each_stage}')
         
         # Calculate other layer memory costs
         other_memory_cost_model_args = OtherMemoryCostModelArguments(min_tp_size=strategy.tp_size, max_tp_size=strategy.tp_size, world_size=world_size, pp_size=pp_size, sharding_stage=sharding_stage, global_batch_size=global_batch_size, accumulation_steps=accumulation_steps, other_memory_pp_off=self.other_memory_pp_off, other_memory_pp_on=self.other_memory_pp_on)
         memory_other = OtherMemoryCostModel(other_memory_cost_model_args).get_other_memory_cost()
+        print(f'\tMemory cost for other layers: {memory_other}')
         
         # compose the memory cost of each stage
         if pp_size == 1:
@@ -285,6 +291,11 @@ class ProfileDataParser:
                                                                  other_memory_pp_off=self.other_memory_pp_off, other_memory_pp_on=self.other_memory_pp_on, other_time_profiled=self.other_time_profiled_list[0],
                                                                  allreduce_coe_dict=self.allreduce_coe, bct_fct_coe=2, dp_overlap_coe=self.overlap_coe)
         time_other, time_other_no_comm = OtherTimeCostModel(other_time_cost_model_args).gen_result()  # len(time_other) == strategy.pp_size
+        
+        print(f'\tTime cost for each layer type: {timecost_per_layer}')
+        print(f'\tTime cost for each layer type without communication: {timecost_per_layer_no_comm}')
+        print(f'\tTime cost for other layers: {time_other}')
+        print(f'\tTime cost for other layers without communication: {time_other_no_comm}')
         
         # calculate the time cost of each stage
         pp_size = strategy.pp_size
