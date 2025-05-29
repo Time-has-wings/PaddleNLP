@@ -263,7 +263,7 @@ class ModelProfiler:
                                         - re[self.key_format(layernum_key_0, bsz, seq_tuple[0], 'first', 'ms')]) 
                                         / layernum_diff
                                         * fixed_pp_deg # 好像没有必要*fix_pp_deg
-                                        / 4 # model states size = 4 * param size
+                                        / 4 # because model states size = 4 * param size
                                     )
                     param_per_layer *= dp_deg # when memory profile, we use zero-3. Now we restore the influence.
             
@@ -321,7 +321,7 @@ class ModelProfiler:
         
         
         # [Step3] Process pipeline parallelism memory costs
-        inf = 1e6
+        inf = -1
         other_memory_pp_off = {"model_states": defaultdict(lambda: inf), "activation": defaultdict(lambda: inf)}
         other_memory_pp_on_first = {"model_states": defaultdict(lambda: inf), "activation": defaultdict(lambda: inf)}
         other_memory_pp_on_last = {"model_states": defaultdict(lambda: inf), "activation": defaultdict(lambda: inf)}
@@ -357,9 +357,13 @@ class ModelProfiler:
                     other_ms_last = (re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "ms")] - layer_ms_costs_last / dp_deg) * dp_deg
 
                     # Calculate activation memory peaks
-                    act_peak_first = max(re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "act_peak")], re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "act")])
-                    act_peak_last = max(re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "act_peak")], re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "act")])
-                    
+                    if pp_deg != 1:
+                        act_peak_first = max(re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "act_peak")], re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "act")])
+                        act_peak_last = max(re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "act_peak")], re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "act")])
+                    else:
+                        act_peak_first = re[self.key_format(layernum_list, bsz, seq_tuple[0], 'first', "act")]
+                        act_peak_last = re[self.key_format(layernum_list, bsz, seq_tuple[0], 'last', "act")]
+                        
                     other_act_first = (act_peak_first - layer_act_costs_first * bsz / dp_deg) / (bsz / dp_deg)
                     other_act_last = (act_peak_last - layer_act_costs_last * bsz / dp_deg) / (bsz / dp_deg)
                     
@@ -372,13 +376,19 @@ class ModelProfiler:
                     # Store the results
                     tp_key = tp_deg # 当增加enable_vocab_tp后，这个地方需要做出修改
                     if pp_deg == 1:
-                        other_memory_pp_off["model_states"][tp_key] = min(other_memory_pp_off["model_states"][tp_key], other_ms_first)
-                        other_memory_pp_off["activation"][tp_key] = min(other_memory_pp_off["activation"][tp_key], other_act_first)
+                        # other_memory_pp_off["model_states"][tp_key] = min(other_memory_pp_off["model_states"][tp_key], other_ms_first)
+                        # other_memory_pp_off["activation"][tp_key] = min(other_memory_pp_off["activation"][tp_key], other_act_first)
+                        other_memory_pp_off["model_states"][tp_key] = max(other_memory_pp_off["model_states"][tp_key], other_ms_first)
+                        other_memory_pp_off["activation"][tp_key] = max(other_memory_pp_off["activation"][tp_key], other_act_first)
                     else:
-                        other_memory_pp_on_first["model_states"][tp_key] = min(other_memory_pp_on_first["model_states"][tp_key], other_ms_first)
-                        other_memory_pp_on_first["activation"][tp_key] = min(other_memory_pp_on_first["activation"][tp_key], other_act_first)
-                        other_memory_pp_on_last["model_states"][tp_key] = min(other_memory_pp_on_last["model_states"][tp_key], other_ms_last)
-                        other_memory_pp_on_last["activation"][tp_key] = min(other_memory_pp_on_last["activation"][tp_key], other_act_last)
+                        other_memory_pp_on_first["model_states"][tp_key] = max(other_memory_pp_on_first["model_states"][tp_key], other_ms_first)
+                        other_memory_pp_on_first["activation"][tp_key] = max(other_memory_pp_on_first["activation"][tp_key], other_act_first)
+                        other_memory_pp_on_last["model_states"][tp_key] = max(other_memory_pp_on_last["model_states"][tp_key], other_ms_last)
+                        other_memory_pp_on_last["activation"][tp_key] = max(other_memory_pp_on_last["activation"][tp_key], other_act_last)
+                        # other_memory_pp_on_first["model_states"][tp_key] = min(other_memory_pp_on_first["model_states"][tp_key], other_ms_first)
+                        # other_memory_pp_on_first["activation"][tp_key] = min(other_memory_pp_on_first["activation"][tp_key], other_act_first)
+                        # other_memory_pp_on_last["model_states"][tp_key] = min(other_memory_pp_on_last["model_states"][tp_key], other_ms_last)
+                        # other_memory_pp_on_last["activation"][tp_key] = min(other_memory_pp_on_last["activation"][tp_key], other_act_last)
                 tp_deg *= 2
             pp_deg *= 2
         print('other_memory_pp_off:', other_memory_pp_off)

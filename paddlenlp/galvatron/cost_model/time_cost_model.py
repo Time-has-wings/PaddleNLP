@@ -69,7 +69,7 @@ class TimeCostModel:
         if self.recompute:
             self.bct += self.fct
         
-        print(f'time cost model, fct:{self.fct}, bct:{self.bct}')
+        # print(f'time cost model, fct:{self.fct}, bct:{self.bct}')
             
     def estimate_dp_communication_cost(self):
         args = self.args
@@ -95,7 +95,7 @@ class TimeCostModel:
             
         self.tc = args.allreduce_coe_dict[self.tp_size]
         self.tp_communication_time = self.tp_message_size * self.tc
-        print(f'time cost model tp_message_size: {self.tp_message_size}, tp_communication_time: {self.tp_communication_time}')
+        # print(f'time cost model tp_message_size: {self.tp_message_size}, tp_communication_time: {self.tp_communication_time}')
     
     def estimate_pp_communication_cost(self):
         args = self.args
@@ -110,7 +110,7 @@ class TimeCostModel:
         else:
             self.p2p_message_size = 0.0
             self.p2p_communication_time = 0.0
-        print(f'time cost model p2p_message_size: {self.p2p_message_size}, p2p_communication_time: {self.p2p_communication_time}')
+        # print(f'time cost model p2p_message_size: {self.p2p_message_size}, p2p_communication_time: {self.p2p_communication_time}')
     
     def bct_dp_overlap(self, dp_message_size, bct):
         args = self.args
@@ -129,7 +129,7 @@ class TimeCostModel:
             overlap_part = dp_overlap_time
             rest_part = 0.0
             rest_dp_flag = False
-        print(f'time cost model bct_dp_overlap: overlap_part: {overlap_part}, rest_part: {rest_part}, rest_dp_flag: {rest_dp_flag}')
+        # print(f'time cost model bct_dp_overlap: overlap_part: {overlap_part}, rest_part: {rest_part}, rest_dp_flag: {rest_dp_flag}')
         return overlap_part, rest_part, rest_dp_flag
     
     def gen_result(self):
@@ -217,7 +217,7 @@ class OtherTimeCostModel:
             else: # pp, two stages, we assume the first stage and last stage have the same time cost.
                 self.fct[tp_size] = (fct_time / 2, fct_time / 2)
             tp_size *= 2
-        print(f'othertime fct: {self.fct}')
+        # print(f'othertime fct: {self.fct}')
     
     def estimate_dp_time(self):
         args = self.args

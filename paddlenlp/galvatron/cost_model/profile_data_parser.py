@@ -234,12 +234,12 @@ class ProfileDataParser:
                 memory_cost_model_args = MemoryCostModelArguments(strategy=strategy, global_batch_size=global_batch_size, mixed_precision_type=mixed_precision_type, stage_idx=stage_idx, accumulation_steps=accumulation_steps, parameter_memory=self.param_sizes[i], tp_activation_per_bsz_dict=self.act_sizes[i])
                 re = MemoryCostModel(memory_cost_model_args).get_memory_cost()
                 memory_per_layer_each_stage[i][stage_idx] = re['enc_total']
-        print(f'\tMemory cost for each layer type at each stage: {memory_per_layer_each_stage}')
+        # print(f'\tMemory cost for each layer type at each stage: {memory_per_layer_each_stage}')
         
         # Calculate other layer memory costs
         other_memory_cost_model_args = OtherMemoryCostModelArguments(min_tp_size=strategy.tp_size, max_tp_size=strategy.tp_size, world_size=world_size, pp_size=pp_size, sharding_stage=sharding_stage, global_batch_size=global_batch_size, accumulation_steps=accumulation_steps, other_memory_pp_off=self.other_memory_pp_off, other_memory_pp_on=self.other_memory_pp_on)
         memory_other = OtherMemoryCostModel(other_memory_cost_model_args).get_other_memory_cost()
-        print(f'\tMemory cost for other layers: {memory_other}')
+        # print(f'\tMemory cost for other layers: {memory_other}')
         
         # compose the memory cost of each stage
         if pp_size == 1:
@@ -292,10 +292,10 @@ class ProfileDataParser:
                                                                  allreduce_coe_dict=self.allreduce_coe, bct_fct_coe=2, dp_overlap_coe=self.overlap_coe)
         time_other, time_other_no_comm = OtherTimeCostModel(other_time_cost_model_args).gen_result()  # len(time_other) == strategy.pp_size
         
-        print(f'\tTime cost for each layer type: {timecost_per_layer}')
-        print(f'\tTime cost for each layer type without communication: {timecost_per_layer_no_comm}')
-        print(f'\tTime cost for other layers: {time_other}')
-        print(f'\tTime cost for other layers without communication: {time_other_no_comm}')
+        # print(f'\tTime cost for each layer type: {timecost_per_layer}')
+        # print(f'\tTime cost for each layer type without communication: {timecost_per_layer_no_comm}')
+        # print(f'\tTime cost for other layers: {time_other}')
+        # print(f'\tTime cost for other layers without communication: {time_other_no_comm}')
         
         if strategy.pp_size == 1:
             cost = (timecost_per_layer_no_comm[0] * self.layernum_list[0] + time_other_no_comm[strategy.tp_size][0]) * (accumulation_steps - 1) + timecost_per_layer[0] * self.layernum_list[0] + time_other[strategy.tp_size][0]

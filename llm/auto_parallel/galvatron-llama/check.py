@@ -17,7 +17,9 @@ tasks_list = [
     "A100_1_4_2_zero2_FALSE_128_32_4_2_O1_TRUE_16_1024",
     "A100_1_4_2_zero2_FALSE_128_16_8_4_O1_TRUE_16_1024",
     "A100_1_2_4_zero2_FALSE_128_16_8_2_O1_TRUE_16_1024",
-    "A100_1_2_4_zero2_FALSE_128_8_16_4_O1_TRUE_16_1024"
+    "A100_1_2_4_zero2_FALSE_128_8_16_4_O1_TRUE_16_1024",
+    "A100_2_2_2_zero2_TRUE_128_16_8_4_O1_TRUE_16_1024",
+    "A100_1_2_4_zero2_TRUE_128_8_16_4_O1_TRUE_16_1024"
 ]
 
 total_task_predict_time_result = []

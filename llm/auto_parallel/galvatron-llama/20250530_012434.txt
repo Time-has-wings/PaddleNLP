@@ -1,0 +1,711 @@
+Parsing profile computation configs...
+	Fitted popt for transformer layers: [2.09006265 1.26858879]
+	Fitted popt for other layers: [2.51056404 2.30016963]
+Profile computation configs parsed successfully.
+Parsing profile memory configs...
+	parameter sizes: [774.25634765625]
+	activation sizes: [{1: 201.4140625, 2: 108.70703125, 4: 62.353515625, 8: 39.1728515625, 'checkpoint': 16.0}]
+	other memory pp off: {'model_states': {1: 4000.576171875, 2: 2000.4990234375, 4: 1000.46044921875, 8: 500.441162109375}, 'activation': {1: 180.286376953125, 2: 156.6514892578125, 4: 144.83404541015625, 8: 138.92337036132812}}
+	other memory pp on: {'first_stage': {'model_states': {1: 2000.330078125, 2: 1000.3212890625, 4: 500.31689453125, 8: 250.158447265625}, 'activation': {1: 195.734375, 2: 101.8671875, 4: 29.9295654296875, 8: 14.96478271484375}}, 'last_stage': {'model_states': {1: 2000.4423828125, 2: 1000.40087890625, 4: 500.380126953125, 8: 250.1900634765625}, 'activation': {1: 1304.9998779296875, 2: 781.5018920898438, 4: 519.7470397949219, 8: 259.87351989746094}}}
+Profile memory configs parsed successfully.
+Parsing profile hardware configs...
+	Overlap coefficient: 1.1224731786991577
+	Allreduce coefficient: {8: 0.006388470089183042, 4: 0.005987737114389729, 2: 0.00650080935076417, 1: 0}
+	P2P coefficient: {2: 0.006437284753291062, 4: 0.009508053321163024, 8: 0.012757803310394803}
+Profile hardware configs parsed successfully.
+profile_data_parser constructed.
+==========================================================================================================================================================================================================================================================
+task 0: A100_2_2_2_zero2_FALSE_128_16_8_4_O1_TRUE_16_1024
+current strategy: pp2_tp2_dp2_stage2_recompute0 global batch size: 128 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 8.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 387.128173828125, 'model_states': 1163.7072905273437, 'activation': 869.65625, 'enc_total': 2033.3635405273437}
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 387.128173828125, 'model_states': 1163.7072905273437, 'activation': 434.828125, 'enc_total': 1598.5354155273437}
+	Memory cost for each layer type at each stage: [{0: 2033.3635405273437, 1: 1598.5354155273437}]
+other_layers_bsz_first: 8, other_layers_bsz_last: 4
+other cost model states first stage 751.7414487304688
+other cost model activation first stage 814.9375
+other cost model states last stage 751.801260498047
+other cost model activation last stage 3126.007568359375
+	Memory cost for other layers: {2: [2590.6789487304686, 4901.808828857422]}
+======== memory cost result ========
+stage 0: 18857.58727294922
+stage 1: 17690.09215307617
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 128.0, p2p_communication_time: 0.8239724484212559
+time cost model bct_dp_overlap: overlap_part: 135.5936708663698, rest_part: 140.73924643619165, rest_dp_flag: False
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 128.0, p2p_communication_time: 0.8239724484212559
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 261.538276149766, rest_dp_flag: False
+othertime fct: {2: (3.0856064417201328, 3.0856064417201328)}
+	Time cost for each layer type: [0.01782902142297555]
+	Time cost for each layer type without communication: [0.017212578041609073]
+	Time cost for other layers: {2: [0.009405178021884297, 0.009405178021884297]}
+	Time cost for other layers without communication: {2: [0.009360832274772624, 0.009360832274772624]}
+======== time cost result ========
+time cost: 2.5000447623299684
+==========================================================================================================================================================================================================================================================
+task 1: A100_1_1_8_zero2_FALSE_256_16_16_2_O1_TRUE_8_1024
+current strategy: pp1_tp1_dp8_stage2_recompute0 global batch size: 256 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 2.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 774.25634765625, 'model_states': 1746.7223203125002, 'activation': 402.828125, 'enc_total': 2149.5504453125004}
+	Memory cost for each layer type at each stage: [{0: 2149.5504453125004}]
+other cost model states 2256.3249609375002
+other cost model activation 360.57275390625
+	Memory cost for other layers: {1: [3640.8977148437502]}
+======== memory cost result ========
+stage 0: 38033.704839843755
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 233.188378827536, rest_part: 53.79310837855945, rest_dp_flag: False
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 261.538276149766, rest_dp_flag: False
+othertime fct: {1: 7.321297696441679}
+	Time cost for each layer type: [0.017406276053374102]
+	Time cost for each layer type without communication: [0.01634614225936037]
+	Time cost for other layers: {1: [0.022268894952998754]}
+	Time cost for other layers without communication: {1: [0.02196389308932504]}
+======== time cost result ========
+time cost: 4.553301850393349
+==========================================================================================================================================================================================================================================================
+task 2: A100_1_8_1_ddp_FALSE_64_16_4_4_O1_TRUE_16_1024
+current strategy: pp1_tp8_dp1_stage0_recompute0 global batch size: 64 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 96.78204345703125, 'model_states': 387.128173828125, 'activation': 156.69140625, 'enc_total': 543.819580078125}
+	Memory cost for each layer type at each stage: [{0: 543.819580078125}]
+other cost model states 500.441162109375
+other cost model activation 555.6934814453125
+	Memory cost for other layers: {8: [2080.1346435546875]}
+======== memory cost result ========
+stage 0: 10781.247924804688
+
+time cost calculating...
+time cost model, fct:55.52688271320036, bct:111.05376542640072
+time cost model tp_message_size: 5376.0, tp_communication_time: 34.344415199448036
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model, fct:55.52688271320036, bct:111.05376542640072
+time cost model tp_message_size: 5376.0, tp_communication_time: 34.344415199448036
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+othertime fct: {8: 1.5428032208600664}
+	Time cost for each layer type: [0.008371877639127046]
+	Time cost for each layer type without communication: [0.008371877639127046]
+	Time cost for other layers: {8: [0.004986163987574449]}
+	Time cost for other layers without communication: {8: [0.004986163987574449]}
+======== time cost result ========
+time cost: 2.222979299417715
+==========================================================================================================================================================================================================================================================
+task 3: A100_1_8_1_ddp_FALSE_128_16_8_8_O1_TRUE_16_1024
+current strategy: pp1_tp8_dp1_stage0_recompute0 global batch size: 128 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 8.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 96.78204345703125, 'model_states': 387.128173828125, 'activation': 313.3828125, 'enc_total': 700.510986328125}
+	Memory cost for each layer type at each stage: [{0: 700.510986328125}]
+other cost model states 500.441162109375
+other cost model activation 1111.386962890625
+	Memory cost for other layers: {8: [2635.828125]}
+======== memory cost result ========
+stage 0: 13844.00390625
+
+time cost calculating...
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 10752.0, tp_communication_time: 68.68883039889607
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 10752.0, tp_communication_time: 68.68883039889607
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+othertime fct: {8: 2.7980852384697794}
+	Time cost for each layer type: [0.012937988912507492]
+	Time cost for each layer type without communication: [0.012937988912507492]
+	Time cost for other layers: {8: [0.009109764365397838]}
+	Time cost for other layers without communication: {8: [0.009109764365397838]}
+======== time cost result ========
+time cost: 3.4578813914482835
+==========================================================================================================================================================================================================================================================
+task 4: A100_8_1_1_ddp_FALSE_64_64_1_1_O1_TRUE_16_1024
+current strategy: pp8_tp1_dp1_stage0_recompute0 global batch size: 64 accumulation steps: 64
+
+memory cost calculating...
+local batch size: 8.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 1611.3125, 'enc_total': 4708.337890625}
+local batch size: 7.0, act_1f1b_ratio: 0.109375
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 1409.8984375, 'enc_total': 4506.923828125}
+local batch size: 6.0, act_1f1b_ratio: 0.09375
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 1208.484375, 'enc_total': 4305.509765625}
+local batch size: 5.0, act_1f1b_ratio: 0.078125
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 1007.0703125, 'enc_total': 4104.095703125}
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 805.65625, 'enc_total': 3902.681640625}
+local batch size: 3.0, act_1f1b_ratio: 0.046875
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 604.2421875, 'enc_total': 3701.267578125}
+local batch size: 2.0, act_1f1b_ratio: 0.03125
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 402.828125, 'enc_total': 3499.853515625}
+local batch size: 1.0, act_1f1b_ratio: 0.015625
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 201.4140625, 'enc_total': 3298.439453125}
+	Memory cost for each layer type at each stage: [{0: 4708.337890625, 1: 4506.923828125, 2: 4305.509765625, 3: 4104.095703125, 4: 3902.681640625, 5: 3701.267578125, 6: 3499.853515625, 7: 3298.439453125}]
+other_layers_bsz_first: 8, other_layers_bsz_last: 1
+other cost model states first stage 2000.330078125
+other cost model activation first stage 1565.875
+other cost model states last stage 2000.4423828125
+other cost model activation last stage 1304.9998779296875
+	Memory cost for other layers: {1: [4590.205078125, 1024, 1024, 1024, 1024, 1024, 1024, 4329.4422607421875]}
+======== memory cost result ========
+stage 0: 14006.880859375
+stage 1: 9013.84765625
+stage 2: 8611.01953125
+stage 3: 8208.19140625
+stage 4: 7805.36328125
+stage 5: 7402.53515625
+stage 6: 6999.70703125
+stage 7: 10926.321166992188
+
+time cost calculating...
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 128.0, p2p_communication_time: 1.6329988237305348
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 128.0, p2p_communication_time: 1.6329988237305348
+othertime fct: {1: (2.4053668306111264, 2.4053668306111264)}
+	Time cost for each layer type: [0.010143995930208928]
+	Time cost for each layer type without communication: [0.010143995930208928]
+	Time cost for other layers: {1: [0.007216100491833379, 0, 0, 0, 0, 0, 0, 0.007216100491833379]}
+	Time cost for other layers without communication: {1: [0.007216100491833379, 0, 0, 0, 0, 0, 0, 0.007216100491833379]}
+======== time cost result ========
+time cost: 1.9094939540588376
+==========================================================================================================================================================================================================================================================
+task 5: A100_8_1_1_ddp_FALSE_16_16_1_1_O1_TRUE_16_1024
+current strategy: pp8_tp1_dp1_stage0_recompute0 global batch size: 16 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 8.0, act_1f1b_ratio: 0.5
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 1611.3125, 'enc_total': 4708.337890625}
+local batch size: 7.0, act_1f1b_ratio: 0.4375
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 1409.8984375, 'enc_total': 4506.923828125}
+local batch size: 6.0, act_1f1b_ratio: 0.375
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 1208.484375, 'enc_total': 4305.509765625}
+local batch size: 5.0, act_1f1b_ratio: 0.3125
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 1007.0703125, 'enc_total': 4104.095703125}
+local batch size: 4.0, act_1f1b_ratio: 0.25
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 805.65625, 'enc_total': 3902.681640625}
+local batch size: 3.0, act_1f1b_ratio: 0.1875
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 604.2421875, 'enc_total': 3701.267578125}
+local batch size: 2.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 402.828125, 'enc_total': 3499.853515625}
+local batch size: 1.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 774.25634765625, 'model_states': 3097.025390625, 'activation': 201.4140625, 'enc_total': 3298.439453125}
+	Memory cost for each layer type at each stage: [{0: 4708.337890625, 1: 4506.923828125, 2: 4305.509765625, 3: 4104.095703125, 4: 3902.681640625, 5: 3701.267578125, 6: 3499.853515625, 7: 3298.439453125}]
+other_layers_bsz_first: 8, other_layers_bsz_last: 1
+other cost model states first stage 2000.330078125
+other cost model activation first stage 1565.875
+other cost model states last stage 2000.4423828125
+other cost model activation last stage 1304.9998779296875
+	Memory cost for other layers: {1: [4590.205078125, 1024, 1024, 1024, 1024, 1024, 1024, 4329.4422607421875]}
+======== memory cost result ========
+stage 0: 14006.880859375
+stage 1: 9013.84765625
+stage 2: 8611.01953125
+stage 3: 8208.19140625
+stage 4: 7805.36328125
+stage 5: 7402.53515625
+stage 6: 6999.70703125
+stage 7: 10926.321166992188
+
+time cost calculating...
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 128.0, p2p_communication_time: 1.6329988237305348
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 128.0, p2p_communication_time: 1.6329988237305348
+othertime fct: {1: (2.4053668306111264, 2.4053668306111264)}
+	Time cost for each layer type: [0.010143995930208928]
+	Time cost for each layer type without communication: [0.010143995930208928]
+	Time cost for other layers: {1: [0.007216100491833379, 0, 0, 0, 0, 0, 0, 0.007216100491833379]}
+	Time cost for other layers without communication: {1: [0.007216100491833379, 0, 0, 0, 0, 0, 0, 0.007216100491833379]}
+======== time cost result ========
+time cost: 0.589297521150778
+==========================================================================================================================================================================================================================================================
+task 6: A100_2_4_1_ddp_FALSE_64_16_4_4_O1_TRUE_16_1024
+current strategy: pp2_tp4_dp1_stage0_recompute0 global batch size: 64 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 8.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 193.5640869140625, 'model_states': 774.25634765625, 'activation': 498.828125, 'enc_total': 1273.08447265625}
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 193.5640869140625, 'model_states': 774.25634765625, 'activation': 249.4140625, 'enc_total': 1023.67041015625}
+	Memory cost for each layer type at each stage: [{0: 1273.08447265625, 1: 1023.67041015625}]
+other_layers_bsz_first: 8, other_layers_bsz_last: 4
+other cost model states first stage 500.31689453125
+other cost model activation first stage 239.4365234375
+other cost model states last stage 500.380126953125
+other cost model activation last stage 2078.9881591796875
+	Memory cost for other layers: {4: [1763.75341796875, 3603.3682861328125]}
+======== memory cost result ========
+stage 0: 11948.42919921875
+stage 1: 11792.731567382812
+
+time cost calculating...
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 4608.0, tp_communication_time: 27.59149262310787
+time cost model p2p_message_size: 128.0, p2p_communication_time: 0.8239724484212559
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 4608.0, tp_communication_time: 27.59149262310787
+time cost model p2p_message_size: 128.0, p2p_communication_time: 0.8239724484212559
+othertime fct: {4: (1.5428032208600664, 1.5428032208600664)}
+	Time cost for each layer type: [0.011259932023867202]
+	Time cost for each layer type without communication: [0.011259932023867202]
+	Time cost for other layers: {4: [0.004772115353325552, 0.004772115353325552]}
+	Time cost for other layers without communication: {4: [0.004772115353325552, 0.004772115353325552]}
+======== time cost result ========
+time cost: 1.6124767162524738
+==========================================================================================================================================================================================================================================================
+task 7: A100_2_4_1_ddp_FALSE_128_16_8_8_O1_TRUE_16_1024
+current strategy: pp2_tp4_dp1_stage0_recompute0 global batch size: 128 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 16.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 193.5640869140625, 'model_states': 774.25634765625, 'activation': 997.65625, 'enc_total': 1771.91259765625}
+local batch size: 8.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 193.5640869140625, 'model_states': 774.25634765625, 'activation': 498.828125, 'enc_total': 1273.08447265625}
+	Memory cost for each layer type at each stage: [{0: 1771.91259765625, 1: 1273.08447265625}]
+other_layers_bsz_first: 16, other_layers_bsz_last: 8
+other cost model states first stage 500.31689453125
+other cost model activation first stage 478.873046875
+other cost model states last stage 500.380126953125
+other cost model activation last stage 4157.976318359375
+	Memory cost for other layers: {4: [2003.18994140625, 5682.3564453125]}
+======== memory cost result ========
+stage 0: 16178.49072265625
+stage 1: 15867.0322265625
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 9216.0, tp_communication_time: 55.18298524621574
+time cost model p2p_message_size: 256.0, p2p_communication_time: 1.6479448968425119
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 9216.0, tp_communication_time: 55.18298524621574
+time cost model p2p_message_size: 256.0, p2p_communication_time: 1.6479448968425119
+othertime fct: {4: (2.7980852384697794, 2.7980852384697794)}
+	Time cost for each layer type: [0.018714097681987802]
+	Time cost for each layer type without communication: [0.018714097681987802]
+	Time cost for other layers: {4: [0.008681667096900044, 0.008681667096900044]}
+	Time cost for other layers without communication: {4: [0.008681667096900044, 0.008681667096900044]}
+======== time cost result ========
+time cost: 2.692705625397642
+==========================================================================================================================================================================================================================================================
+task 8: A100_4_2_1_ddp_FALSE_64_16_4_4_O1_TRUE_16_1024
+current strategy: pp4_tp2_dp1_stage0_recompute0 global batch size: 64 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 16.0, act_1f1b_ratio: 0.25
+result: {'parameter_size': 387.128173828125, 'model_states': 1548.5126953125, 'activation': 1739.3125, 'enc_total': 3287.8251953125}
+local batch size: 12.0, act_1f1b_ratio: 0.1875
+result: {'parameter_size': 387.128173828125, 'model_states': 1548.5126953125, 'activation': 1304.484375, 'enc_total': 2852.9970703125}
+local batch size: 8.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 387.128173828125, 'model_states': 1548.5126953125, 'activation': 869.65625, 'enc_total': 2418.1689453125}
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 387.128173828125, 'model_states': 1548.5126953125, 'activation': 434.828125, 'enc_total': 1983.3408203125}
+	Memory cost for each layer type at each stage: [{0: 3287.8251953125, 1: 2852.9970703125, 2: 2418.1689453125, 3: 1983.3408203125}]
+other_layers_bsz_first: 16, other_layers_bsz_last: 4
+other cost model states first stage 1000.3212890625
+other cost model activation first stage 1629.875
+other cost model states last stage 1000.40087890625
+other cost model activation last stage 3126.007568359375
+	Memory cost for other layers: {2: [3654.1962890625, 1024, 1024, 5150.408447265625]}
+======== memory cost result ========
+stage 0: 16805.4970703125
+stage 1: 11411.98828125
+stage 2: 9672.67578125
+stage 3: 13083.771728515625
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 256.0, p2p_communication_time: 2.434061650217734
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 256.0, p2p_communication_time: 2.434061650217734
+othertime fct: {2: (3.0856064417201328, 3.0856064417201328)}
+	Time cost for each layer type: [0.017279665091683927]
+	Time cost for each layer type without communication: [0.017279665091683927]
+	Time cost for other layers: {2: [0.009360832274772624, 0, 0, 0.009360832274772624]}
+	Time cost for other layers without communication: {2: [0.009360832274772624, 0, 0, 0.009360832274772624]}
+======== time cost result ========
+time cost: 1.472388695639113
+==========================================================================================================================================================================================================================================================
+task 9: A100_4_2_1_ddp_FALSE_128_32_4_4_O1_TRUE_16_1024
+current strategy: pp4_tp2_dp1_stage0_recompute0 global batch size: 128 accumulation steps: 32
+
+memory cost calculating...
+local batch size: 16.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 387.128173828125, 'model_states': 1548.5126953125, 'activation': 1739.3125, 'enc_total': 3287.8251953125}
+local batch size: 12.0, act_1f1b_ratio: 0.09375
+result: {'parameter_size': 387.128173828125, 'model_states': 1548.5126953125, 'activation': 1304.484375, 'enc_total': 2852.9970703125}
+local batch size: 8.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 387.128173828125, 'model_states': 1548.5126953125, 'activation': 869.65625, 'enc_total': 2418.1689453125}
+local batch size: 4.0, act_1f1b_ratio: 0.03125
+result: {'parameter_size': 387.128173828125, 'model_states': 1548.5126953125, 'activation': 434.828125, 'enc_total': 1983.3408203125}
+	Memory cost for each layer type at each stage: [{0: 3287.8251953125, 1: 2852.9970703125, 2: 2418.1689453125, 3: 1983.3408203125}]
+other_layers_bsz_first: 16, other_layers_bsz_last: 4
+other cost model states first stage 1000.3212890625
+other cost model activation first stage 1629.875
+other cost model states last stage 1000.40087890625
+other cost model activation last stage 3126.007568359375
+	Memory cost for other layers: {2: [3654.1962890625, 1024, 1024, 5150.408447265625]}
+======== memory cost result ========
+stage 0: 16805.4970703125
+stage 1: 11411.98828125
+stage 2: 9672.67578125
+stage 3: 13083.771728515625
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 256.0, p2p_communication_time: 2.434061650217734
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 256.0, p2p_communication_time: 2.434061650217734
+othertime fct: {2: (3.0856064417201328, 3.0856064417201328)}
+	Time cost for each layer type: [0.017279665091683927]
+	Time cost for each layer type without communication: [0.017279665091683927]
+	Time cost for other layers: {2: [0.009360832274772624, 0, 0, 0.009360832274772624]}
+	Time cost for other layers without communication: {2: [0.009360832274772624, 0, 0, 0.009360832274772624]}
+======== time cost result ========
+time cost: 2.7280605779032463
+==========================================================================================================================================================================================================================================================
+task 10: A100_2_1_4_zero2_FALSE_128_16_8_2_O1_TRUE_16_1024
+current strategy: pp2_tp1_dp4_stage2_recompute0 global batch size: 128 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 4.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 774.25634765625, 'model_states': 1940.2864072265627, 'activation': 805.65625, 'enc_total': 2745.942657226563}
+local batch size: 2.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 774.25634765625, 'model_states': 1940.2864072265627, 'activation': 402.828125, 'enc_total': 2343.114532226563}
+	Memory cost for each layer type at each stage: [{0: 2745.942657226563, 1: 2343.114532226563}]
+other_layers_bsz_first: 4, other_layers_bsz_last: 2
+other cost model states first stage 1253.2067939453127
+other cost model activation first stage 782.9375
+other cost model states last stage 1253.2771528320313
+other cost model activation last stage 2609.999755859375
+	Memory cost for other layers: {1: [3060.1442939453127, 4887.276908691407]}
+======== memory cost result ========
+stage 0: 25027.68555175781
+stage 1: 23632.193166503905
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 64.0, p2p_communication_time: 0.41198622421062797
+time cost model bct_dp_overlap: overlap_part: 187.3380401689835, rest_part: 94.64071126889203, rest_dp_flag: False
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 64.0, p2p_communication_time: 0.41198622421062797
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 261.538276149766, rest_dp_flag: False
+othertime fct: {1: (3.6606488482208395, 3.6606488482208395)}
+	Time cost for each layer type: [0.01721499482237372]
+	Time cost for each layer type without communication: [0.016363308352035814]
+	Time cost for other layers: {1: [0.01110446476616935, 0.01110446476616935]}
+	Time cost for other layers without communication: {1: [0.01098194654466252, 0.01098194654466252]}
+======== time cost result ========
+time cost: 2.412103027136134
+==========================================================================================================================================================================================================================================================
+task 11: A100_4_1_2_zero2_FALSE_128_32_4_2_O1_TRUE_16_1024
+current strategy: pp4_tp1_dp2_stage2_recompute0 global batch size: 128 accumulation steps: 32
+
+memory cost calculating...
+local batch size: 8.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 774.25634765625, 'model_states': 2327.4145810546875, 'activation': 1611.3125, 'enc_total': 3938.7270810546875}
+local batch size: 6.0, act_1f1b_ratio: 0.09375
+result: {'parameter_size': 774.25634765625, 'model_states': 2327.4145810546875, 'activation': 1208.484375, 'enc_total': 3535.8989560546875}
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 774.25634765625, 'model_states': 2327.4145810546875, 'activation': 805.65625, 'enc_total': 3133.0708310546875}
+local batch size: 2.0, act_1f1b_ratio: 0.03125
+result: {'parameter_size': 774.25634765625, 'model_states': 2327.4145810546875, 'activation': 402.828125, 'enc_total': 2730.2427060546875}
+	Memory cost for each layer type at each stage: [{0: 3938.7270810546875, 1: 3535.8989560546875, 2: 3133.0708310546875, 3: 2730.2427060546875}]
+other_layers_bsz_first: 8, other_layers_bsz_last: 2
+other cost model states first stage 1503.2480537109377
+other cost model activation first stage 1565.875
+other cost model states last stage 1503.3324506835938
+other cost model activation last stage 2609.999755859375
+	Memory cost for other layers: {1: [4093.1230537109377, 1024, 1024, 5137.332206542969]}
+======== memory cost result ========
+stage 0: 19848.03137792969
+stage 1: 14143.59582421875
+stage 2: 12532.28332421875
+stage 3: 16058.303030761717
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 128.0, p2p_communication_time: 1.217030825108867
+time cost model bct_dp_overlap: overlap_part: 135.5936708663698, rest_part: 140.73924643619165, rest_dp_flag: False
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 0.0, tp_communication_time: 0.0
+time cost model p2p_message_size: 128.0, p2p_communication_time: 1.217030825108867
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 261.538276149766, rest_dp_flag: False
+othertime fct: {1: (3.6606488482208395, 3.6606488482208395)}
+	Time cost for each layer type: [0.01701329525843972]
+	Time cost for each layer type without communication: [0.01639685187707324]
+	Time cost for other layers: {1: [0.0110706241852909, 0, 0, 0.0110706241852909]}
+	Time cost for other layers without communication: {1: [0.01098194654466252, 0, 0, 0.01098194654466252]}
+======== time cost result ========
+time cost: 2.6579634987641167
+==========================================================================================================================================================================================================================================================
+task 12: A100_1_4_2_zero2_FALSE_128_32_4_2_O1_TRUE_16_1024
+current strategy: pp1_tp4_dp2_stage2_recompute0 global batch size: 128 accumulation steps: 32
+
+memory cost calculating...
+local batch size: 2.0, act_1f1b_ratio: 0.03125
+result: {'parameter_size': 193.5640869140625, 'model_states': 581.8536452636719, 'activation': 124.70703125, 'enc_total': 706.5606765136719}
+	Memory cost for each layer type at each stage: [{0: 706.5606765136719}]
+other cost model states 751.8460275878907
+other cost model activation 289.6680908203125
+	Memory cost for other layers: {4: [2065.514118408203]}
+======== memory cost result ========
+stage 0: 13370.484942626954
+
+time cost calculating...
+time cost model, fct:55.52688271320036, bct:111.05376542640072
+time cost model tp_message_size: 2304.0, tp_communication_time: 13.795746311553936
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 124.65487308468263, rest_part: 9.745264287173624, rest_dp_flag: True
+time cost model, fct:55.52688271320036, bct:111.05376542640072
+time cost model tp_message_size: 2304.0, tp_communication_time: 13.795746311553936
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 111.05376542640072, rest_dp_flag: False
+othertime fct: {4: 1.8303244241104197}
+	Time cost for each layer type: [0.008488448599858773]
+	Time cost for each layer type without communication: [0.007515683102131458]
+	Time cost for other layers: {4: [0.005679030879367293]}
+	Time cost for other layers without communication: {4: [0.005634678963076612]}
+======== time cost result ========
+time cost: 4.043948074989686
+==========================================================================================================================================================================================================================================================
+task 13: A100_1_4_2_zero2_FALSE_128_16_8_4_O1_TRUE_16_1024
+current strategy: pp1_tp4_dp2_stage2_recompute0 global batch size: 128 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 193.5640869140625, 'model_states': 581.8536452636719, 'activation': 249.4140625, 'enc_total': 831.2677077636719}
+	Memory cost for each layer type at each stage: [{0: 831.2677077636719}]
+other cost model states 751.8460275878907
+other cost model activation 579.336181640625
+	Memory cost for other layers: {4: [2355.1822092285156]}
+======== memory cost result ========
+stage 0: 15655.465533447266
+
+time cost calculating...
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 4608.0, tp_communication_time: 27.59149262310787
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 135.5936708663698, rest_part: 40.41623928728147, rest_dp_flag: False
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 4608.0, tp_communication_time: 27.59149262310787
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 161.2152690008558, rest_dp_flag: False
+othertime fct: {4: 3.0856064417201328}
+	Time cost for each layer type: [0.01184204321988279]
+	Time cost for each layer type without communication: [0.011225599838516316]
+	Time cost for other layers: {4: [0.009588582622941787]}
+	Time cost for other layers without communication: {4: [0.009544230706651105]}
+======== time cost result ========
+time cost: 3.0363686959847493
+==========================================================================================================================================================================================================================================================
+task 14: A100_1_2_4_zero2_FALSE_128_16_8_2_O1_TRUE_16_1024
+current strategy: pp1_tp2_dp4_stage2_recompute0 global batch size: 128 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 2.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 387.128173828125, 'model_states': 970.1432036132813, 'activation': 217.4140625, 'enc_total': 1187.5572661132815}
+	Memory cost for each layer type at each stage: [{0: 1187.5572661132815}]
+other cost model states 1253.312638183594
+other cost model activation 313.302978515625
+	Memory cost for other layers: {2: [2590.6156166992187]}
+======== memory cost result ========
+stage 0: 21591.531874511722
+
+time cost calculating...
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 1536.0, tp_communication_time: 9.985243162773765
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 180.95981545023042, rest_part: 5.68229588001815, rest_dp_flag: True
+time cost model, fct:80.6076345004279, bct:161.2152690008558
+time cost model tp_message_size: 1536.0, tp_communication_time: 9.985243162773765
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 161.2152690008558, rest_dp_flag: False
+othertime fct: {2: 3.6606488482208395}
+	Time cost for each layer type: [0.011551457874727096]
+	Time cost for each layer type without communication: [0.010492006111002395]
+	Time cost for other layers: {2: [0.011208488063513407]}
+	Time cost for other layers without communication: {2: [0.011085959494274746]}
+======== time cost result ========
+time cost: 2.8804026731138426
+==========================================================================================================================================================================================================================================================
+task 15: A100_1_2_4_zero2_FALSE_128_8_16_4_O1_TRUE_16_1024
+current strategy: pp1_tp2_dp4_stage2_recompute0 global batch size: 128 accumulation steps: 8
+
+memory cost calculating...
+local batch size: 4.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 387.128173828125, 'model_states': 970.1432036132813, 'activation': 434.828125, 'enc_total': 1404.9713286132815}
+	Memory cost for each layer type at each stage: [{0: 1404.9713286132815}]
+other cost model states 1253.312638183594
+other cost model activation 626.60595703125
+	Memory cost for other layers: {2: [2903.9185952148437]}
+======== memory cost result ========
+stage 0: 25383.459853027347
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 187.3380401689835, rest_part: 94.64071126889203, rest_dp_flag: False
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 261.538276149766, rest_dp_flag: False
+othertime fct: {2: 6.1712128834402655}
+	Time cost for each layer type: [0.018029932326596085]
+	Time cost for each layer type without communication: [0.017178245856258188]
+	Time cost for other layers: {2: [0.018844193118783912]}
+	Time cost for other layers without communication: {2: [0.01872166454954525]}
+======== time cost result ========
+time cost: 2.362338298092055
+==========================================================================================================================================================================================================================================================
+task 16: A100_2_2_2_zero2_TRUE_128_16_8_4_O1_TRUE_16_1024
+current strategy: pp2_tp2_dp2_stage2_recompute1 global batch size: 128 accumulation steps: 16
+
+memory cost calculating...
+local batch size: 8.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 387.128173828125, 'model_states': 1163.7072905273437, 'activation': 64.0, 'enc_total': 1227.7072905273437}
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 387.128173828125, 'model_states': 1163.7072905273437, 'activation': 32.0, 'enc_total': 1195.7072905273437}
+	Memory cost for each layer type at each stage: [{0: 1227.7072905273437, 1: 1195.7072905273437}]
+other_layers_bsz_first: 8, other_layers_bsz_last: 4
+other cost model states first stage 751.7414487304688
+other cost model activation first stage 814.9375
+other cost model states last stage 751.801260498047
+other cost model activation last stage 3126.007568359375
+	Memory cost for other layers: {2: [2590.6789487304686, 4901.808828857422]}
+======== memory cost result ========
+stage 0: 12412.337272949217
+stage 1: 14467.46715307617
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:392.30741422464894
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 128.0, p2p_communication_time: 0.8239724484212559
+time cost model bct_dp_overlap: overlap_part: 135.5936708663698, rest_part: 271.5083845110746, rest_dp_flag: False
+time cost model, fct:130.769138074883, bct:392.30741422464894
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 128.0, p2p_communication_time: 0.8239724484212559
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 392.30741422464894, rest_dp_flag: False
+othertime fct: {2: (3.0856064417201328, 3.0856064417201328)}
+	Time cost for each layer type: [0.023277735509429007]
+	Time cost for each layer type without communication: [0.022661292128062532]
+	Time cost for other layers: {2: [0.009405178021884297, 0.009405178021884297]}
+	Time cost for other layers without communication: {2: [0.009360832274772624, 0.009360832274772624]}
+======== time cost result ========
+time cost: 3.2410698780876395
+==========================================================================================================================================================================================================================================================
+task 17: A100_1_2_4_zero2_TRUE_128_8_16_4_O1_TRUE_16_1024
+current strategy: pp1_tp2_dp4_stage2_recompute1 global batch size: 128 accumulation steps: 8
+
+memory cost calculating...
+local batch size: 4.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 387.128173828125, 'model_states': 970.1432036132813, 'activation': 32.0, 'enc_total': 1002.1432036132813}
+	Memory cost for each layer type at each stage: [{0: 1002.1432036132813}]
+other cost model states 1253.312638183594
+other cost model activation 626.60595703125
+	Memory cost for other layers: {2: [2903.9185952148437]}
+======== memory cost result ========
+stage 0: 18938.209853027343
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:392.30741422464894
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 187.3380401689835, rest_part: 225.409849343775, rest_dp_flag: False
+time cost model, fct:130.769138074883, bct:392.30741422464894
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 0.0, p2p_communication_time: 0.0
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 392.30741422464894, rest_dp_flag: False
+othertime fct: {2: 6.1712128834402655}
+	Time cost for each layer type: [0.02347864641304954]
+	Time cost for each layer type without communication: [0.022626959942711647]
+	Time cost for other layers: {2: [0.018844193118783912]}
+	Time cost for other layers without communication: {2: [0.01872166454954525]}
+======== time cost result ========
+time cost: 3.0597737011580977
+======== all tasks memory cost result ========
+task 0: A100_2_2_2_zero2_FALSE_128_16_8_4_O1_TRUE_16_1024, memory cost: [18857.58727294922, 17690.09215307617]
+task 1: A100_1_1_8_zero2_FALSE_256_16_16_2_O1_TRUE_8_1024, memory cost: [38033.704839843755]
+task 2: A100_1_8_1_ddp_FALSE_64_16_4_4_O1_TRUE_16_1024, memory cost: [10781.247924804688]
+task 3: A100_1_8_1_ddp_FALSE_128_16_8_8_O1_TRUE_16_1024, memory cost: [13844.00390625]
+task 4: A100_8_1_1_ddp_FALSE_64_64_1_1_O1_TRUE_16_1024, memory cost: [14006.880859375, 9013.84765625, 8611.01953125, 8208.19140625, 7805.36328125, 7402.53515625, 6999.70703125, 10926.321166992188]
+task 5: A100_8_1_1_ddp_FALSE_16_16_1_1_O1_TRUE_16_1024, memory cost: [14006.880859375, 9013.84765625, 8611.01953125, 8208.19140625, 7805.36328125, 7402.53515625, 6999.70703125, 10926.321166992188]
+task 6: A100_2_4_1_ddp_FALSE_64_16_4_4_O1_TRUE_16_1024, memory cost: [11948.42919921875, 11792.731567382812]
+task 7: A100_2_4_1_ddp_FALSE_128_16_8_8_O1_TRUE_16_1024, memory cost: [16178.49072265625, 15867.0322265625]
+task 8: A100_4_2_1_ddp_FALSE_64_16_4_4_O1_TRUE_16_1024, memory cost: [16805.4970703125, 11411.98828125, 9672.67578125, 13083.771728515625]
+task 9: A100_4_2_1_ddp_FALSE_128_32_4_4_O1_TRUE_16_1024, memory cost: [16805.4970703125, 11411.98828125, 9672.67578125, 13083.771728515625]
+task 10: A100_2_1_4_zero2_FALSE_128_16_8_2_O1_TRUE_16_1024, memory cost: [25027.68555175781, 23632.193166503905]
+task 11: A100_4_1_2_zero2_FALSE_128_32_4_2_O1_TRUE_16_1024, memory cost: [19848.03137792969, 14143.59582421875, 12532.28332421875, 16058.303030761717]
+task 12: A100_1_4_2_zero2_FALSE_128_32_4_2_O1_TRUE_16_1024, memory cost: [13370.484942626954]
+task 13: A100_1_4_2_zero2_FALSE_128_16_8_4_O1_TRUE_16_1024, memory cost: [15655.465533447266]
+task 14: A100_1_2_4_zero2_FALSE_128_16_8_2_O1_TRUE_16_1024, memory cost: [21591.531874511722]
+task 15: A100_1_2_4_zero2_FALSE_128_8_16_4_O1_TRUE_16_1024, memory cost: [25383.459853027347]
+task 16: A100_2_2_2_zero2_TRUE_128_16_8_4_O1_TRUE_16_1024, memory cost: [12412.337272949217, 14467.46715307617]
+task 17: A100_1_2_4_zero2_TRUE_128_8_16_4_O1_TRUE_16_1024, memory cost: [18938.209853027343]
+======== all tasks time cost result ========
+2.5000
+4.5533
+2.2230
+3.4579
+1.9095
+0.5893
+1.6125
+2.6927
+1.4724
+2.7281
+2.4121
+2.6580
+4.0439
+3.0364
+2.8804
+2.3623
+3.2411
+3.0598
+======== all tasks stage0 memory cost result ========
+18.4156
+37.1423
+10.5286
+13.5195
+13.6786
+13.6786
+11.6684
+15.7993
+16.4116
+16.4116
+24.4411
+19.3828
+13.0571
+15.2885
+21.0855
+24.7885
+12.1214
+18.4943

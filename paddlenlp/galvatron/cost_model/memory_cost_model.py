@@ -42,15 +42,19 @@ class MemoryCostModel:
         end = self.pp_size - args.stage_idx if self.pp_size - args.stage_idx <= args.accumulation_steps else args.accumulation_steps
         self.act_1f1b_ratio = np.sum(microbatches[:end]) / np.sum(microbatches) if end > 0 else 0.0
         self.local_batch_size *= self.act_1f1b_ratio
-        print(f'local batch size: {self.local_batch_size}, act_1f1b_ratio: {self.act_1f1b_ratio}')
+        # print(f'local batch size: {self.local_batch_size}, act_1f1b_ratio: {self.act_1f1b_ratio}')
 
-        # TODO check
+        # In PaddlePaddle, parameter gradients are stored in FP32 precision
         if args.accumulation_steps == 1:
-            self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            self.zero2_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
             self.zero3_ratio = lambda d: (1/d + 0.003)
+            # self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            # self.zero3_ratio = lambda d: (1/d + 0.003)
         else:
-            self.zero2_ratio = (lambda d: (6/8 * (1/d + 0.003) + 2/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (2/4 * (1/d + 0.003) + 2/4))
-            self.zero3_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            self.zero2_ratio = (lambda d: (2/4 * (1/d + 0.003) + 2/4))
+            self.zero3_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            # self.zero2_ratio = (lambda d: (6/8 * (1/d + 0.003) + 2/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (2/4 * (1/d + 0.003) + 2/4))
+            # self.zero3_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
         
     def estimate_parameter_size(self):
         args = self.args
@@ -67,7 +71,7 @@ class MemoryCostModel:
         args = self.args
         if self.recompute:
             self.activation_size = args.tp_activation_per_bsz_dict['checkpoint'] * self.local_batch_size
-            # NOTE adjust for sequence parallelism
+            # NOTE adjust for sequence parallelism(Megatron-LM SP)
             self.activation_size /= self.tp_size 
         else:
             self.activation_size = args.tp_activation_per_bsz_dict[self.tp_size] * self.local_batch_size
@@ -78,7 +82,7 @@ class MemoryCostModel:
         result['model_states'] = self.model_states_size
         result['activation'] = self.activation_size
         result['enc_total'] = self.model_states_size + self.activation_size
-        print(f'result: {result}')
+        # print(f'result: {result}')
         return result
     
 @dataclass
@@ -91,7 +95,7 @@ class OtherMemoryCostModelArguments:
     global_batch_size: int = field(default=8, metadata={"help": "The global batch size of the model."})
     accumulation_steps: int = field(default=1, metadata={"help": "The number of accumulation steps."})
     mixed_precision_type: str = field(default='fp16', metadata={"help": "The mixed precision type of the model."})
-    paddle_context_memory: float = field(default=0.0, metadata={"help": "The paddle context memory of the model."})
+    paddle_context_memory: float = field(default=1024, metadata={"help": "The paddle context memory of the model."})
     other_memory_pp_off:dict = field(default_factory=lambda: {'model_states': 640, 'activation': 320})
     other_memory_pp_on:dict = field(default_factory=lambda: {'first_stage':{'model_states': 640, 'activation': 320}, 'last_stage':{'model_states': 640, 'activation': 320}})
 
@@ -104,13 +108,16 @@ class OtherMemoryCostModel:
     def initialize(self):
         args = self.args
         
-        # TODO check
+        # In PaddlePaddle, parameter gradients are stored in FP32 precision
         if args.accumulation_steps == 1:
-            self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            # self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            self.zero2_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
             self.zero3_ratio = lambda d: (1/d + 0.003)
         else:
-            self.zero2_ratio = (lambda d: (6/8 * (1/d + 0.003) + 2/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (2/4 * (1/d + 0.003) + 2/4))
-            self.zero3_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            self.zero2_ratio = (lambda d: (2/4 * (1/d + 0.003) + 2/4))
+            self.zero3_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            # self.zero2_ratio = (lambda d: (6/8 * (1/d + 0.003) + 2/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (2/4 * (1/d + 0.003) + 2/4))
+            # self.zero3_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
         self.zero_ratio = self.zero2_ratio if args.sharding_stage == 2 else (self.zero3_ratio if args.sharding_stage == 3 else (lambda d: 1.0))
     
     def estimate_memory_cost(self):
@@ -128,10 +135,17 @@ class OtherMemoryCostModel:
             other_layers_bsz = args.global_batch_size // dp_size // args.accumulation_steps  # already divided by accumulation steps
 
             if args.pp_size == 1: # no pp -> only one stage
+                # print("other cost model states", args.other_memory_pp_off['model_states'][tp_size] * self.zero_ratio(dp_size))
+                # print("other cost model activation", args.other_memory_pp_off['activation'][tp_size] * other_layers_bsz)
                 tp_other_memory_cost[0] = args.other_memory_pp_off['model_states'][tp_size] * self.zero_ratio(dp_size) + args.other_memory_pp_off['activation'][tp_size] * other_layers_bsz
-            else: # pp -> 0:first stage, -1:last stage
+            else: # pp -> 0:first stage, -1:last stage (here we assume accumulation_steps is greater than pp_size, which holds true in industrial practice. )
                 other_layers_bsz_first = other_layers_bsz * args.pp_size
                 other_layers_bsz_last = other_layers_bsz * 1
+                # print(f'other_layers_bsz_first: {other_layers_bsz_first}, other_layers_bsz_last: {other_layers_bsz_last}')
+                # print("other cost model states first stage", args.other_memory_pp_on['first_stage']['model_states'][tp_size] * self.zero_ratio(dp_size))
+                # print("other cost model activation first stage", args.other_memory_pp_on['first_stage']['activation'][tp_size] * other_layers_bsz_first)
+                # print("other cost model states last stage", args.other_memory_pp_on['last_stage']['model_states'][tp_size] * self.zero_ratio(dp_size))
+                # print("other cost model activation last stage", args.other_memory_pp_on['last_stage']['activation'][tp_size] * other_layers_bsz_last)
                 tp_other_memory_cost[0] = args.other_memory_pp_on['first_stage']['model_states'][tp_size] * self.zero_ratio(dp_size) + args.other_memory_pp_on['first_stage']['activation'][tp_size] * other_layers_bsz_first
                 tp_other_memory_cost[-1] = args.other_memory_pp_on['last_stage']['model_states'][tp_size] * self.zero_ratio(dp_size) + args.other_memory_pp_on['last_stage']['activation'][tp_size] * other_layers_bsz_last
             
