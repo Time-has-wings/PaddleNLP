@@ -297,6 +297,10 @@ class ProfileDataParser:
         print(f'\tTime cost for other layers: {time_other}')
         print(f'\tTime cost for other layers without communication: {time_other_no_comm}')
         
+        if strategy.pp_size == 1:
+            cost = (timecost_per_layer_no_comm[0] * self.layernum_list[0] + time_other_no_comm[strategy.tp_size][0]) * (accumulation_steps - 1) + timecost_per_layer[0] * self.layernum_list[0] + time_other[strategy.tp_size][0]
+            return cost
+        
         # calculate the time cost of each stage
         pp_size = strategy.pp_size
         total_layer_num = sum(self.layernum_list)

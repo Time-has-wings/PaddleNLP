@@ -206,8 +206,8 @@ class OtherTimeCostModel:
             if isinstance(args.other_time_profiled, np.ndarray): # when time profile-mode is batch or sequence, forward_computation time is popt meaning the linear function fitted parameters.
                 def linear_func(x, m, c):
                     return m * x + c
-                fct_time = linear_func(args.micro_batch_size / dp_size / tp_size, args.other_time_profiled[0], args.other_time_profiled[1]) # / tp_size
-                # fct_time = linear_func(args.micro_batch_size / dp_size, args.other_time_profiled[0], args.other_time_profiled[1]) / tp_size
+                # fct_time = linear_func(args.micro_batch_size / dp_size / tp_size, args.other_time_profiled[0], args.other_time_profiled[1]) # / tp_size
+                fct_time = linear_func(args.micro_batch_size / dp_size, args.other_time_profiled[0], args.other_time_profiled[1]) / tp_size
 
             else:
                 fct_time = args.other_time_profiled * args.micro_batch_size // dp_size / tp_size
@@ -260,9 +260,9 @@ class OtherTimeCostModel:
                 per_tp_message_time.append(tp_message_size[-1] * tp_coe)
             
             if args.pp_size == 1:
-                self.tp_time[tp_size] = sum(per_tp_message_time) + per_tp_message_time[-1] # For T5 model
+                self.tp_time[tp_size] = sum(per_tp_message_time) + per_tp_message_time[-1] # For T5 model (Actually, this code is not for T5 model, but for embedding + lmhead)
             else:
-                self.tp_time[tp_size] = (per_tp_message_time[0], per_tp_message_time[-1])  # For T5 model, first stage and last stage have the same time cost.
+                self.tp_time[tp_size] = (per_tp_message_time[0], per_tp_message_time[-1])  # For T5 model, first stage and last stage have the same time cost. (Actually, this code is divide embedding and lmhead)
             
             tp_size *= 2
             

@@ -61,7 +61,8 @@ class SearchEngine:
                 if tp_size > args.max_tp_size:
                     continue
                 dp_size = args.world_size // (pp_size * tp_size)
-                sharding_stage_set = [0, 2, 3] if dp_size > 1 else [0]
+                # sharding_stage_set = [0, 2, 3] if dp_size > 1 else [0]
+                sharding_stage_set = [0, 2] if dp_size > 1 else [0] # when in static mode, RuntimeError: Operation((%0) = "pd_op.embedding_grad" is not support sharded by shard_tensor op in pir mode happend.
                 for recompute in [0, 1]:
                     for sharding_stage in sharding_stage_set:
                         strategy = Strategy(pp_size=pp_size, tp_size=tp_size, dp_size=dp_size, sharding_stage=sharding_stage, recompute=recompute)

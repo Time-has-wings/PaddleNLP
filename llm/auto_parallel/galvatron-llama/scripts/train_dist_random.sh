@@ -2,7 +2,7 @@ set -x
 unset CUDA_VISIBLE_DEVICES
 
 # task_name="A100_1_4_1_none_FALSE_64_16_4_4_O1_TRUE_16"
-task_name="A100_1_2_4_zero2_FALSE_128_8_16_4_O1_TRUE_16_1024"
+task_name="A100_1_2_4_zero3_FALSE_128_8_16_4_O1_FALSE_16_1024"
 rm -rf output/$task_name/
 rm -rf "output/$task_name""_log"
 
@@ -42,7 +42,7 @@ MODEL_ARGS="
     --intermediate_size 11008 \
     --vocab_size 32000 \
     --hidden_size 4096 \
-    --seq_length 1024 \
+    --seq_length 2048 \
     --num_attention_heads 32 \
 "
 
@@ -65,7 +65,7 @@ CONFIG_ARGS="
 PARALLEL_ARGS=(
     --to_static 1
     --sharding_parallel_degree 4
-    --sharding "stage2"
+    --sharding "stage3"
     --tensor_parallel_degree 2
     --sequence_parallel true
     --pipeline_parallel_degree 1
@@ -74,7 +74,7 @@ PARALLEL_ARGS=(
     --sep_parallel_degree 1
     --pipeline_parallel_config "enable_send_recv_overlap"
     --data_parallel_config "enable_allreduce_avg_in_gradinent_scale gradient_sync_after_accumulate"
-    --sharding_parallel_config "enable_overlap"
+    --sharding_parallel_config "enable_overlap enable_release_grads"
     --tensor_parallel_config "enable_mp_async_allreduce"
 )
 

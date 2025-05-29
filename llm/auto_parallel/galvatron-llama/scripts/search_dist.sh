@@ -18,8 +18,8 @@ ProfileDataParserArgs="
 SearchEngineArgs="
     --search_granularity coarse-grained \
     --world_size 8 \
-    --min_bsz 64 \
-    --max_bsz 64 \
+    --min_bsz 128 \
+    --max_bsz 128 \
     --bsz_step 1 \
     --max_tp_size 8 \
     --max_pp_size 8 \
