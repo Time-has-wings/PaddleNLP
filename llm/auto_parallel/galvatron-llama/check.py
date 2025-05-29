@@ -1,9 +1,11 @@
 from paddlenlp.galvatron.cost_model.profile_data_parser import ProfileDataParser, ProfileDataParserArguments
 from paddlenlp.galvatron.utils import get_current_all_args, Strategy
 
-tasks_list = []
+tasks_list = [
+    "A100_2_2_2_zero2_FALSE_128_16_8_4_O1_TRUE_16_1024",
+]
 
-def parse_rask_name(task_name):
+def parse_task_name(task_name):
     parts = task_name.split('_')
     pp = parts[1]
     tp = parts[2]
@@ -14,15 +16,34 @@ def parse_rask_name(task_name):
     accumulate_steps = int(parts[7])
     
     strategy_str = f'pp{pp}_tp{tp}_dp{dp}_stage{stage}_recompute{recompute}'
-    strategy = Strategy()
-    strategy.deserialize(strategy_str)
     
     task = {
-        'strategy': strategy,
+        'strategy_str': strategy_str,
         'gbsz': gbsz,
         'accumulate_steps': accumulate_steps
     }
     return task 
+
+def do_predict():
+    for task in tasks_list:
+        print("=" * 250)
+        parse_result = parse_task_name(task)
+        strategy = Strategy()
+        strategy.deserialize(parse_result['strategy_str'])
+        print(f'current strategy: {strategy}', end=" ")
+        print(f'global batch size: {parse_result["gbsz"]}', end=" ")
+        print(f'accumulation steps: {parse_result["accumulate_steps"]}')
+        
+        print(f'\nmemory cost calculating...')
+        memory_cost = profile_data_parser.get_memory_cost_for_specific_strategy(strategy, parse_result['gbsz'], 'bf16', parse_result['accumulate_steps'])
+        print('======== memory cost result ========')
+        for stage_idx in range(strategy.pp_size):
+            print(f'stage {stage_idx}: {memory_cost[stage_idx]}')
+            
+        print(f'\ntime cost calculating...')
+        time_cost = profile_data_parser.get_time_cost_for_specific_strategy(strategy, parse_result['gbsz'], 'bf16', parse_result['accumulate_steps'])
+        print('======== time cost result ========')
+        print(f'time cost: {time_cost}')
 
 if __name__ == "__main__":
     args_dict = get_current_all_args()
@@ -32,25 +53,6 @@ if __name__ == "__main__":
     profile_data_parser = ProfileDataParser(profile_data_parser_args)
     print('profile_data_parser constructed.')
     
-    strategy_str = args_dict.pop("--strategy", None)
-    global_batch_size = int(args_dict.pop("--global_batch_size", 1))
-    mixed_precision_type = args_dict.pop("--mixed_precision_type", False)
-    accumulation_steps = int(args_dict.pop("--accumulation_steps", 1))
-    
-    assert strategy_str is not None, "Strategy must be specified."
-    strategy = Strategy()
-    strategy.deserialize(strategy_str)
-    print(f'current strategy: {strategy}')
-    
-    print(f'\nmemory cost calculating...')
-    memory_cost = profile_data_parser.get_memory_cost_for_specific_strategy(strategy, global_batch_size, mixed_precision_type, accumulation_steps)
-    print('======== memory cost result ========')
-    for stage_idx in range(strategy.pp_size):
-        print(f'stage {stage_idx}: {memory_cost[stage_idx]}')
-        
-    print(f'\ntime cost calculating...')
-    time_cost = profile_data_parser.get_time_cost_for_specific_strategy(strategy, global_batch_size, mixed_precision_type, accumulation_steps)
-    print('======== time cost result ========')
-    print(f'time cost: {time_cost}')
+    do_predict()
     
     

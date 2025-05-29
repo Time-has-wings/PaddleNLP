@@ -1,0 +1,45 @@
+Parsing profile computation configs...
+	Fitted popt for transformer layers: [2.09006265 1.26858879]
+	Fitted popt for other layers: [2.51056404 2.30016963]
+Profile computation configs parsed successfully.
+Parsing profile memory configs...
+	parameter sizes: [774.25634765625]
+	activation sizes: [{1: 201.4140625, 2: 108.70703125, 4: 62.353515625, 8: 39.1728515625, 'checkpoint': 16.0}]
+	other memory pp off: {'model_states': {1: 4000.576171875, 2: 2000.4990234375, 4: 1000.46044921875, 8: 500.441162109375}, 'activation': {1: 2305.273681640625, 2: 1281.6387939453125, 4: 769.8213500976562, 8: 513.9106750488281}}
+	other memory pp on: {'first_stage': {'model_states': {1: 2000.2783203125, 2: 1000.29541015625, 4: 500.31689453125, 8: 250.158447265625}, 'activation': {1: 131.1015625, 2: 39.921875, 4: 29.9295654296875, 8: 14.96478271484375}}, 'last_stage': {'model_states': {1: 2000.26416015625, 2: 1000.311767578125, 4: 500.380126953125, 8: 250.1900634765625}, 'activation': {1: 804.8632202148438, 2: 531.4277038574219, 4: 519.7470397949219, 8: 259.87351989746094}}}
+Profile memory configs parsed successfully.
+Parsing profile hardware configs...
+	Overlap coefficient: 1.1224731786991577
+	Allreduce coefficient: {8: 0.006388470089183042, 4: 0.005987737114389729, 2: 0.00650080935076417, 1: 0}
+	P2P coefficient: {2: 0.006437284753291062, 4: 0.009508053321163024, 8: 0.012757803310394803}
+Profile hardware configs parsed successfully.
+profile_data_parser constructed.
+current strategy: pp2_tp2_dp2_stage2_recompute0
+
+memory cost calculating...
+local batch size: 8.0, act_1f1b_ratio: 0.125
+result: {'parameter_size': 387.128173828125, 'model_states': 971.3045881347656, 'activation': 869.65625, 'enc_total': 1840.9608381347657}
+local batch size: 4.0, act_1f1b_ratio: 0.0625
+result: {'parameter_size': 387.128173828125, 'model_states': 971.3045881347656, 'activation': 434.828125, 'enc_total': 1406.1327131347657}
+	Memory cost for each layer type at each stage: [{0: 1840.9608381347657, 1: 1406.1327131347657}]
+	Memory cost for other layers: {2: [946.8102960205077, 2753.1563716430664]}
+======== memory cost result ========
+stage 0: 15674.497001098636
+stage 1: 14002.218076721196
+
+time cost calculating...
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 128.0, p2p_communication_time: 0.8239724484212559
+time cost model bct_dp_overlap: overlap_part: 67.7968354331849, rest_part: 201.1387612929788, rest_dp_flag: False
+time cost model, fct:130.769138074883, bct:261.538276149766
+time cost model tp_message_size: 3072.0, tp_communication_time: 19.97048632554753
+time cost model p2p_message_size: 128.0, p2p_communication_time: 0.8239724484212559
+time cost model bct_dp_overlap: overlap_part: 0.0, rest_part: 261.538276149766, rest_dp_flag: False
+othertime fct: {2: (3.6606488482208395, 3.6606488482208395)}
+	Time cost for each layer type: [0.017520799732292314]
+	Time cost for each layer type without communication: [0.017212578041609073]
+	Time cost for other layers: {2: [0.011130304094135585, 0.011130304094135585]}
+	Time cost for other layers without communication: {2: [0.011085959494274746, 0.011085959494274746]}
+======== time cost result ========
+time cost: 2.5293719250615045
