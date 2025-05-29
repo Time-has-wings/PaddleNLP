@@ -22,4 +22,4 @@ CostModelTrainArgs="
     --accumulation_steps 16 \
 "
 
-python ./cost_model.py ${ProfileDataParserArgs} ${CostModelTrainArgs}
+python ./check.py ${ProfileDataParserArgs} ${CostModelTrainArgs}

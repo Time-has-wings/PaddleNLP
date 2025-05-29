@@ -77,9 +77,9 @@ class ModelProfiler:
             for bsz in self.batch_size_list: # self.batch_size_list = [1, 2, 3, 4] or [4]
                 for seq_tuple in self.product_sequence_length_list:  # self.product_sequence_length_list = [(1024, 1024), (1024, 2048), (2048, 1024), (2048, 2048)] or [(1024,), (2048,)]                    
                     ARGS['--profile_time_flag'] = 1
-                    ARGS['--profile_forward_only'] = 1
+                    ARGS['--profile_forward_only'] = 0
                     
-                    ARGS['--to_static'] = 0  # use dynamic graph
+                    ARGS['--to_static'] = 1  # use dynamic graph
                     ARGS['--sharding_parallel_degree'] = 1
                     ARGS['--sharding'] = "stage2"  # when sharding_parallel_degree == 1, sharding set any value is ok
                     ARGS['--tensor_parallel_degree'] = 1
@@ -308,8 +308,9 @@ class ModelProfiler:
                                             )
                     act_per_layer_per_sample *= dp_deg / bsz  # namely, act_per_layer_per_sample /= (bsz / dp_deg)
                     
+                    print(f'layertype {i} with checkpoint, tp_deg {tp_deg}: act_per_layer_per_sample = {act_per_layer_per_sample}')
                     act_dict_c_list[i][tp_deg] = act_per_layer_per_sample
-                    act_cpt_list[i] = max(act_cpt_list[i], act_per_layer_per_sample * tp_deg)
+                    act_cpt_list[i] = max(act_cpt_list[i], act_per_layer_per_sample)
             tp_deg *= 2
         
         for i in range(args.num_layertype):

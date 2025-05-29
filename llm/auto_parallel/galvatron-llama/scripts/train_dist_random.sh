@@ -1,7 +1,8 @@
 set -x
 unset CUDA_VISIBLE_DEVICES
 
-task_name="A100_1_2_2_none_FALSE_64_16_4_2_O1_FALSE_16"
+# task_name="A100_1_4_1_none_FALSE_64_16_4_4_O1_TRUE_16"
+task_name="A100_2_2_2_zero2_FALSE_128_16_8_4_O1_TRUE_16_1024"
 rm -rf output/$task_name/
 rm -rf "output/$task_name""_log"
 
@@ -10,7 +11,7 @@ export PYTHONPATH=../../../:$PYTHONPATH
 
 TRAINER="./train_dist_random.py"
 LAUNCHER="python -u -m paddle.distributed.launch"
-LAUNCHER="${LAUNCHER} --gpus 4,5,6,7"  # 设置需要使用的GPU
+LAUNCHER="${LAUNCHER} --gpus 0,1,2,3,4,5,6,7"  # 设置需要使用的GPU
 LAUNCHER="${LAUNCHER} --log_dir output/$task_name""_log ${TRAINER} --output_dir "./output""
 
 # [max_steps] [logging_steps] [enable_auto_parallel]
@@ -47,7 +48,7 @@ MODEL_ARGS="
 
 # [mbsz, accumulation_steps] [recompute] [amp]
 CONFIG_ARGS="
-    --per_device_train_batch_size 2 \
+    --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 16 \
     --recompute false \
     --recompute_use_reentrant true \
@@ -62,12 +63,12 @@ CONFIG_ARGS="
 
 # [dp_deg, dp_type] [tp_deg, megatron-sp] [pp_deg, 1F1B] [parallel_configs]
 PARALLEL_ARGS=(
-    --to_static 0
+    --to_static 1
     --sharding_parallel_degree 2
     --sharding "stage2"
     --tensor_parallel_degree 2
     --sequence_parallel true
-    --pipeline_parallel_degree 1
+    --pipeline_parallel_degree 2
     --virtual_pp_degree 1
     --pipeline_schedule_mode "1F1B"
     --sep_parallel_degree 1

@@ -52,20 +52,24 @@ class TimeCostModel:
         self.sharding_stage = strategy.sharding_stage
         self.recompute = strategy.recompute
         
-        self.local_batch_size = args.global_batch_size // self.dp_size
+        self.local_batch_size = args.global_batch_size // self.dp_size # 此处传递的global_batch_size其实是micro_batch_size
 
     def estimate_computation_time(self):
         args = self.args
         if isinstance(args.forward_computation_time, np.ndarray): # when time profile-mode is batch or sequence, forward_computation time is popt meaning the linear function fitted parameters.
             def linear_func(x, m, c):
                 return m * x + c
-            self.fct = linear_func(self.local_batch_size / self.tp_size , args.forward_computation_time[0], args.forward_computation_time[1]) * args.dummy_layernum # / self.tp_size * args.dummy_layernum # divide by tp_size because the time is profiled on ddp.
+            self.fct = linear_func(self.local_batch_size / self.tp_size , args.forward_computation_time[0], args.forward_computation_time[1]) * args.dummy_layernum # / self.tp_size  # divide by tp_size because the time is profiled on ddp.
+            # self.fct = linear_func(self.local_batch_size, args.forward_computation_time[0], args.forward_computation_time[1]) * args.dummy_layernum / self.tp_size  # divide by tp_size because the time is profiled on ddp.
+
         elif isinstance(args.forward_computation_time, float): # when time profile-mode is static, forward_computation_time is a float.
             self.fct = args.forward_computation_time * self.local_batch_size / self.tp_size * args.dummy_layernum
 
         self.bct = self.fct * args.bct_fct_coe
         if self.recompute:
             self.bct += self.fct
+        
+        print(f'time cost model, fct:{self.fct}, bct:{self.bct}')
             
     def estimate_dp_communication_cost(self):
         args = self.args
@@ -91,6 +95,7 @@ class TimeCostModel:
             
         self.tc = args.allreduce_coe_dict[self.tp_size]
         self.tp_communication_time = self.tp_message_size * self.tc
+        print(f'time cost model tp_message_size: {self.tp_message_size}, tp_communication_time: {self.tp_communication_time}')
     
     def estimate_pp_communication_cost(self):
         args = self.args
@@ -105,6 +110,7 @@ class TimeCostModel:
         else:
             self.p2p_message_size = 0.0
             self.p2p_communication_time = 0.0
+        print(f'time cost model p2p_message_size: {self.p2p_message_size}, p2p_communication_time: {self.p2p_communication_time}')
     
     def bct_dp_overlap(self, dp_message_size, bct):
         args = self.args
@@ -123,6 +129,7 @@ class TimeCostModel:
             overlap_part = dp_overlap_time
             rest_part = 0.0
             rest_dp_flag = False
+        print(f'time cost model bct_dp_overlap: overlap_part: {overlap_part}, rest_part: {rest_part}, rest_dp_flag: {rest_dp_flag}')
         return overlap_part, rest_part, rest_dp_flag
     
     def gen_result(self):
@@ -136,14 +143,17 @@ class TimeCostModel:
         elif self.dp_size == 1 and self.tp_size == 1: # pure pp
             result = self.fct + self.bct
         else: # pp + tp + dp
-            if self.tp_size < self.tp_size * self.dp_size // 2:
-                overlap_part, rest_part, _ = self.bct_dp_overlap(self.dp_message_size, self.bct)
-                overall_overhead = self.fct + overlap_part + rest_part + self.tp_communication_time + args.extra_overhead
-                result = overall_overhead
-            else:
-                overlap_part, rest_part, _ = self.bct_dp_overlap(self.dp_message_size, self.bct * 1 / 2)
-                overall_overhead = self.fct + 1 / 2 * self.bct + overlap_part + rest_part + self.tp_communication_time + args.extra_overhead
-                result = overall_overhead
+            overlap_part, rest_part, _ = self.bct_dp_overlap(self.dp_message_size, self.bct)
+            overall_overhead = self.fct + overlap_part + rest_part + self.tp_communication_time + args.extra_overhead
+            result = overall_overhead
+            # if self.tp_size < self.tp_size * self.dp_size // 2:
+            #     overlap_part, rest_part, _ = self.bct_dp_overlap(self.dp_message_size, self.bct)
+            #     overall_overhead = self.fct + overlap_part + rest_part + self.tp_communication_time + args.extra_overhead
+            #     result = overall_overhead
+            # else:
+            #     overlap_part, rest_part, _ = self.bct_dp_overlap(self.dp_message_size, self.bct * 1 / 2)
+            #     overall_overhead = self.fct + 1 / 2 * self.bct + overlap_part + rest_part + self.tp_communication_time + args.extra_overhead
+            #     result = overall_overhead
                 
         if self.sharding_stage == 3:
             result += self.fsdp_allgather_message_size * self.dc
@@ -197,6 +207,8 @@ class OtherTimeCostModel:
                 def linear_func(x, m, c):
                     return m * x + c
                 fct_time = linear_func(args.micro_batch_size / dp_size / tp_size, args.other_time_profiled[0], args.other_time_profiled[1]) # / tp_size
+                # fct_time = linear_func(args.micro_batch_size / dp_size, args.other_time_profiled[0], args.other_time_profiled[1]) / tp_size
+
             else:
                 fct_time = args.other_time_profiled * args.micro_batch_size // dp_size / tp_size
             
@@ -205,7 +217,7 @@ class OtherTimeCostModel:
             else: # pp, two stages, we assume the first stage and last stage have the same time cost.
                 self.fct[tp_size] = (fct_time / 2, fct_time / 2)
             tp_size *= 2
-        print(f'fct: {self.fct}')
+        print(f'othertime fct: {self.fct}')
     
     def estimate_dp_time(self):
         args = self.args
@@ -235,6 +247,7 @@ class OtherTimeCostModel:
         
         tp_size = args.min_tp_size
         while tp_size <= args.max_tp_size and tp_size * args.pp_size <= args.world_size:
+            dp_size = args.world_size // tp_size // args.pp_size
             tp_coe = args.allreduce_coe_dict[tp_size]
             mixed_precision_factor = 4 if args.mixed_precision_type == 'fp32' else 2
             # mixed_precision_factor = 4 # fixed to 4 when fp16_opt_level = 'O1'
@@ -243,7 +256,7 @@ class OtherTimeCostModel:
             per_tp_message_time = []
             
             for seq_len in args.sequence_length_list:                
-                tp_message_size.append((tp_size - 1) / tp_size * args.micro_batch_size * seq_len * args.hidden_size / 1024 / 1024 * mixed_precision_factor)
+                tp_message_size.append((tp_size - 1) / tp_size * args.micro_batch_size / dp_size * seq_len * args.hidden_size / 1024 / 1024 * mixed_precision_factor)
                 per_tp_message_time.append(tp_message_size[-1] * tp_coe)
             
             if args.pp_size == 1:
@@ -252,7 +265,6 @@ class OtherTimeCostModel:
                 self.tp_time[tp_size] = (per_tp_message_time[0], per_tp_message_time[-1])  # For T5 model, first stage and last stage have the same time cost.
             
             tp_size *= 2
-        print(f'tp_time: {self.tp_time}')
             
     def get_overlap_time(self, forward_comm_time, forward_comp_time, backward_comm_time, backward_comp_time, tp_time):
         forward_comp_time = forward_comp_time * self.args.dp_overlap_coe
