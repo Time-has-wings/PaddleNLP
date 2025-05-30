@@ -24,7 +24,7 @@ SearchEngineArgs="
     --max_tp_size 8 \
     --max_pp_size 8 \
     --mixed_precision_type bf16 \
-    --memory_upper_limit 24 \
+    --memory_upper_limit 36 \
 "
 
 python ./search_dist.py ${ProfileDataParserArgs} ${SearchEngineArgs}

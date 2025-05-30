@@ -46,8 +46,10 @@ class MemoryCostModel:
 
         # In PaddlePaddle, parameter gradients are stored in FP32 precision
         if args.accumulation_steps == 1:
-            self.zero2_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
-            self.zero3_ratio = lambda d: (1/d + 0.003)
+            # self.zero2_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            # self.zero3_ratio = lambda d: (1/d + 0.003)
+            self.zero2_ratio = (lambda d: (2/4 * (1/d + 0.003) + 2/4))
+            self.zero3_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
             # self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type != 'fp32' else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
             # self.zero3_ratio = lambda d: (1/d + 0.003)
         else:
@@ -111,8 +113,10 @@ class OtherMemoryCostModel:
         # In PaddlePaddle, parameter gradients are stored in FP32 precision
         if args.accumulation_steps == 1:
             # self.zero2_ratio = (lambda d: (7/8 * (1/d + 0.003) + 1/8)) if args.mixed_precision_type else (lambda d: (3/4 * (1/d + 0.003) + 1/4))
-            self.zero2_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
-            self.zero3_ratio = lambda d: (1/d + 0.003)
+            # self.zero2_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
+            # self.zero3_ratio = lambda d: (1/d + 0.003)
+            self.zero2_ratio = (lambda d: (2/4 * (1/d + 0.003) + 2/4))
+            self.zero3_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))
         else:
             self.zero2_ratio = (lambda d: (2/4 * (1/d + 0.003) + 2/4))
             self.zero3_ratio = (lambda d: (3/4 * (1/d + 0.003) + 1/4))

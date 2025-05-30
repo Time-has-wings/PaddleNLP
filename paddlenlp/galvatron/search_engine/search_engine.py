@@ -89,7 +89,7 @@ class SearchEngine:
         args = self.args
         
         if args.search_granularity == 'coarse-grained':
-            optimal_solution, max_throughput = {}, -1
+            optimal_solution, max_throughput, optimal_history = {}, -1, []
             results = dict()
             for bsz in self.BSZs:
                 results[bsz] = dict()
@@ -118,8 +118,28 @@ class SearchEngine:
                                 'time_cost': time_cost,
                                 'throughput': max_throughput
                             }
-                        print(f'Batch Size: {bsz}, Accumulation Steps: {accumulation_steps}, Strategy: {strategy.serialize()}, Memory Cost: {memory_cost}, Time Cost: {time_cost}, Throughput: {results[bsz][accumulation_steps][strategy.serialize()]["throughput"]}, OOM: {results[bsz][accumulation_steps][strategy.serialize()]["OOM"]}')
+                            optimal_history.append(optimal_solution)
+                        print(f'Batch Size: {bsz}, Accumulation Steps: {accumulation_steps}, Strategy: {strategy.serialize()}, Memory Cost: {memory_cost} MB, Time Cost: {time_cost} s, Throughput: {results[bsz][accumulation_steps][strategy.serialize()]["throughput"]} Sample/s, OOM: {results[bsz][accumulation_steps][strategy.serialize()]["OOM"]}')
+            print('-----', '[Optimal Solution History]', '-----')
+            for history in optimal_history:
+                print(f'Batch Size: {history["bsz"]}, Accumulation Steps: {history["accumulation_steps"]}, Strategy: {history["strategy"].serialize()}, Memory Cost: {history["memory_cost"]} MB, Time Cost: {history["time_cost"]} s, Throughput: {history["throughput"]} Sample/s')
+            print('-----', '[Optimal Solution]', '-----')
             print('Optimal Solution:', optimal_solution)
+            
+            import os 
+            current_dir = os.getcwd()
+            optimal_solution_path = os.path.join(current_dir, './configs/optimal_solution.json')
+            with open(optimal_solution_path, 'w') as f:
+                import json
+                info = {
+                    'bsz': optimal_solution['bsz'],
+                    'accumulation_steps': optimal_solution['accumulation_steps'],
+                    'strategy': optimal_solution['strategy'].serialize(),
+                    'memory_cost': optimal_solution['memory_cost'],
+                    'time_cost': optimal_solution['time_cost'],
+                    'throughput': optimal_solution['throughput']
+                }
+                json.dump(info, f, indent=4)
             return results, optimal_solution
         else:
             raise NotImplementedError(f"Search granularity '{args.search_granularity}' is not implemented.")
