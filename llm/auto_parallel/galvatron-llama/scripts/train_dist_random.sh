@@ -49,13 +49,13 @@ MODEL_ARGS="
 # [mbsz, accumulation_steps] [recompute] [amp]
 CONFIG_ARGS="
     --per_device_train_batch_size 16 \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps 4 \
     --recompute true \
     --recompute_use_reentrant true \
     --recompute_granularity full \
     --pp_recompute_interval 0 \
     --bf16 true \
-    --fp16_opt_level "O1" \
+    --fp16_opt_level "O2" \
     --amp_master_grad false \
     --amp_custom_black_list "reduce_sum" "c_softmax_with_cross_entropy" \
     --amp_custom_white_list "lookup_table" "lookup_table_v2" \
@@ -64,11 +64,11 @@ CONFIG_ARGS="
 # [dp_deg, dp_type] [tp_deg, megatron-sp] [pp_deg, 1F1B] [parallel_configs]
 PARALLEL_ARGS=(
     --to_static 1
-    --sharding_parallel_degree 8
+    --sharding_parallel_degree 2
     --sharding "stage2"
-    --tensor_parallel_degree 1
+    --tensor_parallel_degree 2
     --sequence_parallel true
-    --pipeline_parallel_degree 1
+    --pipeline_parallel_degree 2
     --virtual_pp_degree 1
     --pipeline_schedule_mode "1F1B"
     --sep_parallel_degree 1
